@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 Adaptation by nobiot
+
+* Forked 1.0.0-rc on 22 March 2020.
+* Adding `.md` extension support. One line of code change. Everything is the same as original org-roam
+
+---
+
+The following is copy of the original change log by the org-roam team:
+
 ## 1.0.0 (TBD)
 
 ## New Features

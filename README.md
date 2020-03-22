@@ -1,36 +1,19 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
-[![Documentation Status](https://readthedocs.org/projects/org-roam/badge/?version=latest)](https://org-roam.readthedocs.io/en/latest/?badge=latest)
-[![GitHub Release](https://img.shields.io/github/v/release/jethrokuan/org-roam)](https://img.shields.io/github/v/release/jethrokuan/org-roam)
 
 ## Synopsis
 
-Org-roam is a [Roam][roamresearch] replica built on top of the
-all-powerful [Org-mode][org].
-
-Org-roam is a solution for effortless non-hierarchical note-taking
-with Org-mode. With Org-roam, notes flow naturally, making note-taking
-fun and easy. Org-roam should also work as a plug-and-play solution
-for anyone already using Org-mode for their personal wiki.
-
-Org-roam aims to implement the core features of Roam, leveraging the
-mature ecosystem around Org-mode where possible. Eventually, we hope
-to further introduce features enabled by the Emacs ecosystem.
-
-As of February 2020, it is in a very early stage of development. 
+This is a clone of [org-roam by Jethro
+Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
+It's adapted to support markdown files in parallel with org files.
+It currently supports (hard coded) `.md` extension only.
+In order to enable the backlinks in the way of org-roam, the org's link syntax
+needs to be used within the markdown files. I suggest to use:
+  `org-roam-insert-link (C-c n i)`
 
 Important links:
 
 - **[Documentation][docs]**
 - **[Org-roam Slack][slack]**
-## A Preview
-
-Here's a screenshot of `org-roam`. The `org-roam` buffer shows
-backlinks for the active org buffer in the left window, as well as the
-surrounding content in the backlink file. The database is built once,
-and updated incrementally. The graph is generated from the link
-structure, and can be used to navigate to the respective files.
-
-![img](doc/images/org-roam-graph.gif)
 
 ## Installation
 
@@ -52,7 +35,7 @@ The recommended method is using use-package and straight, or a similar package m
 ```
 
 For more detailed installation instructions (including instructions for
-Spacemacs users), please see [the installation
+Doom Emacs and Spacemacs users), please see [the installation
 documentation](https://org-roam.readthedocs.io/en/develop/installation/).
 
 ## Knowledge Bases using Org-roam
@@ -63,12 +46,6 @@ documentation](https://org-roam.readthedocs.io/en/develop/installation/).
 ## Changelog
 
 A changelog is being maintained [here](CHANGELOG.md)
-
-## Contributing
-
-To report bugs and suggest new feature use the issue tracker. If you
-have some code which you would like to be merged, then open a pull
-request. Please also see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ## License
 
