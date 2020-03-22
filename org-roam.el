@@ -1,8 +1,16 @@
 ;;; org-roam.el --- Roam Research replica with Org-mode -*- coding: utf-8; lexical-binding: t -*-
+;;; Fork of org-roam by jethrokuan, adapting it for markdown files.
+;;;
 
-;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
-
-;; Author: Jethro Kuan <jethrokuan95@gmail.com>
+;; Original Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
+;;
+;;
+;; Fork by Noboru Ota <me@nobiot.me>
+;; Forked original's version: 1.0.0-rc1 on 22 March 2020
+;; Version: 1.0.1
+;;
+;;
+;; Original Author: Jethro Kuan <jethrokuan95@gmail.com>
 ;; URL: https://github.com/jethrokuan/org-roam
 ;; Keywords: org-mode, roam, convenience
 ;; Version: 1.0.0-rc1
@@ -487,6 +495,7 @@ Like `file-name-extension', but does not strip version number."
   "Check if PATH is pointing to an org file."
   (let ((ext (org-roam--file-name-extension path)))
     (or (string= ext "org")
+        (string= ext "md") ; only supporting .md for now; can be a custom
         (and
          (string= ext "gpg")
          (string= (org-roam--file-name-extension (file-name-sans-extension path)) "org")))))
