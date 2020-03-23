@@ -151,6 +151,10 @@ Formatter may be a function that takes title as its only argument."
 (defvar org-roam--db-connection (make-hash-table :test #'equal)
   "Database connection to Org-roam database.")
 
+;;; md-roam additionals
+;;;; variables
+(defvar md-roam-title-regex "^\\(title:[[:space:]]*\\)\\(.*\n\\)")
+
 ;;;; Core Functions
 (defun org-roam--get-db ()
   "Return the sqlite db file."
@@ -593,6 +597,26 @@ specified via the #+ROAM_ALIAS property."
     (if title
         (cons title alias-list)
       alias-list)))
+
+(defun md-roam--extract-title-from-current-buffer ()
+  "Extract title from the current buffer (markdown file with YAML frontmatter).
+
+It assumes:
+ (1) Current buffer is a markdonw file
+ (2) It has title in the YAML frontmatter on top of the file
+ (3) The format is 'title: ', all lower-case
+
+The extraction is done via regex expresion in defined in 'md-roam-title-regex.
+At the moment, for some weird reason, the regex leaves one whitespace in front
+of the title. 's-trim-left is used to remove it.
+
+TODO Need to see if there is YAML frontmatter to begin with
+TODO Need to find the YAML frontmatter's end section to bind the search
+TODO Ideally, I do not want s-trim-left to be there, but I could not figure
+     out how."
+
+  (when (string-match md-roam-title-regex (buffer-string))
+  (s-trim-left (match-string-no-properties 2))))
 
 (defun org-roam--extract-ref ()
   "Extract the ref from current buffer."
