@@ -153,7 +153,14 @@ Formatter may be a function that takes title as its only argument."
 
 ;;; md-roam additionals
 ;;;; variables
-(defvar md-roam-title-regex "^\\(title:[[:space:]]*\\)\\(.*\n\\)")
+(defvar md-roam-title-regex (concat "\\(^title:[[:blank:]]*\\)"
+                                        ; The line needs to begin with 'title:',
+                                        ; followed by 0-n spaces or tabs.
+                                        ; YAML might insist on whitespace, but
+                                        ; here we can be more lenient
+                                  "\\(.+\n\\)"
+                                        ; Actual title string (1-n characters)
+                                  ))
 
 ;;;; Core Functions
 (defun org-roam--get-db ()
@@ -589,34 +596,57 @@ it as FILE-PATH."
 (defun org-roam--extract-titles ()
   "Extract the titles from current buffer.
 Titles are obtained via the #+TITLE property, or aliases
-specified via the #+ROAM_ALIAS property."
+specified via the #+ROAM_ALIAS property.
+
+md-roam addtion: now this function also looks for document title if there is
+the YAML frontmatter in it. It still prioritize org title #+TITLE. If it is
+not found, then use the markdown title. It will keep the ROAM_ALIAS as it is.
+Currnetly, it does not look for roam_alias in the YAML frontmatter."
   (let* ((props (org-roam--extract-global-props '("TITLE" "ROAM_ALIAS")))
          (aliases (cdr (assoc "ROAM_ALIAS" props)))
          (title (cdr (assoc "TITLE" props)))
-         (alias-list (org-roam--aliases-str-to-list aliases)))
+         (alias-list (org-roam--aliases-str-to-list aliases))
+         (md-title (md-roam--extract-title-from-current-buffer)))
     (if title
         (cons title alias-list)
-      alias-list)))
+      (if md-title (cons md-title alias-list)
+        alias-list))))
 
 (defun md-roam--extract-title-from-current-buffer ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
+This function looks fo the YAML frontmatter deliniator '---' begining of
+the buffer. No space is allowed before or after the deliniator.
+
 It assumes:
- (1) Current buffer is a markdonw file
+ (1) Current buffer is a markdonw file (but does not check it)
  (2) It has title in the YAML frontmatter on top of the file
- (3) The format is 'title: ', all lower-case
+ (3) The format is 'title: The Document Title Value'
+ (4) The title value is escaped by the double quotations
 
 The extraction is done via regex expresion in defined in 'md-roam-title-regex.
+It expects one or more space after the 'title:' key before the title value.
+If the space is not there, the title extracted will be ':title value'.
+
 At the moment, for some weird reason, the regex leaves one whitespace in front
 of the title. 's-trim-left is used to remove it.
 
-TODO Need to see if there is YAML frontmatter to begin with
-TODO Need to find the YAML frontmatter's end section to bind the search
-TODO Ideally, I do not want s-trim-left to be there, but I could not figure
-     out how."
 
-  (when (string-match md-roam-title-regex (buffer-string))
-  (s-trim-left (match-string-no-properties 2))))
+TODO At the moment, an empty title is fine, but if there is no space or one
+     space, it returns ':' as the title; if more than one space, ''.
+TODO Bind the regexp search for the tile. At the moment, the title key: value
+     does not even have to be wihtin the YAML frontmatter, as long as there is
+     '---' at the top of the file!
+TODO Ideally, I do not want s-trim-left to be there, but I could not figure
+     out how.
+I will move these issues to GitHub/GitLab."
+
+  (when
+    (save-excursion
+      (goto-char (point-min))
+      (re-search-forward "^---\n" 5 t nil))
+    (when (string-match md-roam-title-regex (buffer-string))
+      (s-trim-left (match-string-no-properties 2)))))
 
 (defun org-roam--extract-ref ()
   "Extract the ref from current buffer."
