@@ -1,9 +1,24 @@
 # Changelog
 
-## 1.0.1 Adaptation by nobiot
+## 1.0.2 (2020-03-24)
+This change enables extraction of the title from the current buffer (markdown
+file with YAML frontmatter, deliniated by `---`). It also keeps the normal org
+syntax of defining the title: `#+TITLE`. The org syntax is prioritized for
+backward compatibility. Other markdown related syntax is not supported, such as
+Multi-Markdown metadata, pandoc, or TOML. 
+
+Currently, md-roam adaptation does not look for YAML frontmatter for roam_alias.
+The org-roam syntax is kept as is. You can continue to use `#+ROAM_ALIAS` (I don't
+use it, so not a priority for me).
+
+* Adapt `org-roam--extract-titles` to extract titles in markdown files
+* Add `md-roam--extract-title-from-current-buffer` and `md-roam-title-regex`
+  
+
+## 1.0.1 (2020-03-22) Adaptation by nobiot
 
 * Forked 1.0.0-rc on 22 March 2020.
-* Adding `.md` extension support. One line of code change. Everything is the same as original org-roam
+* Add `.md` extension support. One line of code change. Everything is the same as original org-roam
 
 ---
 
