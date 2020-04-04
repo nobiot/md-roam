@@ -1,5 +1,4 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
-
 ## Synopsis
 
 This is a clone of [org-roam by Jethro
@@ -15,15 +14,21 @@ Important links:
 - **[Documentation][docs]**
 - **[Org-roam Slack][slack]**
 
+
 ## Installation
 
-The recommended method is using use-package and straight, or a similar package manager.
+You can install `org-roam` using `package.el`:
+
+```
+M-x package-install RET org-roam RET
+```
+
+Here's a sample configuration with using `use-package`:
 
 ```emacs-lisp
 (use-package org-roam
       :hook 
       (after-init . org-roam-mode)
-      :straight (:host github :repo "jethrokuan/org-roam")
       :custom
       (org-roam-directory "/path/to/org-files/")
       :bind (:map org-roam-mode-map
@@ -34,9 +39,9 @@ The recommended method is using use-package and straight, or a similar package m
               (("C-c n i" . org-roam-insert))))
 ```
 
-For more detailed installation instructions (including instructions for
-Doom Emacs and Spacemacs users), please see [the installation
-documentation](https://org-roam.readthedocs.io/en/develop/installation/).
+For more detailed installation and configuration instructions (including for
+Doom and Spacemacs users), please see [the
+documentation](https://org-roam.readthedocs.io/en/master/installation/).
 
 ## Knowledge Bases using Org-roam
 

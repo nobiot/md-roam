@@ -31,7 +31,7 @@ what `.dir-locals.el` may contain:
 ```
 
 All files within that directory will be treated as their own separate
-set of Org-roam files. Remember to run `org-roam-build-cache` from a
+set of Org-roam files. Remember to run `org-roam-db-build-cache` from a
 file within that directory, at least once.
 
 ## Org-roam Buffer
@@ -98,14 +98,14 @@ Org-roam tries its best to locate the Graphviz executable from your
 `PATH`, but if it fails to do so, you may set it manually:
 
 ```
-(setq org-roam-graphviz-executable "/path/to/dot")
+(setq org-roam-graph-executable "/path/to/dot")
 ```
 
 You may also choose to use `neato` in place of `dot`, which generates a more compact graph layout.
 
 ```
-(setq org-roam-graphviz-executable "/path/to/neato")
-(setq org-roam-graphviz-extra-options '(("overlap" . "false")))
+(setq org-roam-graph-executable "/path/to/neato")
+(setq org-roam-graph-extra-config '(("overlap" . "false")))
 ```
 
 Org-roam also attempts to use Firefox (located on `PATH`) to view the

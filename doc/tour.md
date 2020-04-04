@@ -20,7 +20,7 @@ The cache is a sqlite database named `org-roam.db`, which resides at
 the root of the `org-roam-directory`. Activating `org-roam-mode`
 builds the cache, which may take a while the first time, but is
 generally instantaneous in subsequent runs. To build the cache
-manually again, run `M-x org-roam-build-cache`.
+manually again, run `M-x org-roam-db-build-cache`.
 
 ## Finding a Note
 
@@ -30,6 +30,11 @@ corresponding note. Entering a title of a note that does not yet exist
 will create a new note with that title.
 
 ![org-roam-find-file](images/org-roam-find-file.gif)
+
+Note that in the above image, the [ivy](https://github.com/abo-abo/swiper)
+completion frontend is used. The default frontend has some usability issues with
+non-matching candidates (e.g. when you want to enter a title of a new note,
+there is no completion candidate), so either `ivy` or `helm` is recommended.
 
 ## Inserting Links
 
