@@ -134,9 +134,6 @@ Has an effect if and only if `org-roam-buffer-position' is `top' or `bottom'."
 
 ;;;; md-roam addtional variables
 (defvar md-roam-title-regex
-  "Regexp used to exract the title of a markdown file.
-This regex is to extract `title: value` assumed to be inside the YAML
-frontmatter."
   (concat "\\(^title:[[:blank:]]*\\)"   ; The line needs to begin with 'title:',
                                         ; followed by 0-n spaces or tabs.
                                         ; YAML might insist on whitespace, but
@@ -261,28 +258,64 @@ This is the format that emacsql expects when inserting into the database.
 FILE-FROM is typically the buffer file path, but this may not exist, for example
 in temp buffers.  In cases where this occurs, we do know the file path, and pass
 it as FILE-PATH."
+  (let* ((file-path (or file-path
+                        (file-truename (buffer-file-name))))
+         (links (org-element-map (org-element-parse-buffer) 'link
+                 (lambda (link)
+                   (let ((type (org-element-property :type link))
+                         (path (org-element-property :path link))
+                         (start (org-element-property :begin link)))
+                     (when (and (string= type "file")
+                                (org-roam--org-file-p path))
+                       (goto-char start)
+                       (let* ((element (org-element-at-point))
+                              (begin (or (org-element-property :content-begin element)
+                                         (org-element-property :begin element)))
+                              (content (or (org-element-property :raw-value element)
+                                           (buffer-substring
+                                            begin
+                                            (or (org-element-property :content-end element)
+                                                (org-element-property :end element)))))
+                              (content (string-trim content)))
+                         (vector file-path
+                                 (file-truename (expand-file-name path (file-name-directory file-path)))
+                                 (list :content content :point begin))))))))
+        (md-links (md-roam--extract-links file-path)))
+    (when md-links
+      (setq links (append links md-links)))
+    links))
+
+(defun md-roam--extract-links(&optional file-path)
+  "Extract links in the form of [[link]].
+Treatmetn of FILE-PATH is identical with org-roam--extract-links.
+Add the part to get the true filename of from- and to-files both."
   (let ((file-path (or file-path
-                       (file-truename (buffer-file-name)))))
-    (org-element-map (org-element-parse-buffer) 'link
-      (lambda (link)
-        (let ((type (org-element-property :type link))
-              (path (org-element-property :path link))
-              (start (org-element-property :begin link)))
-          (when (and (string= type "file")
-                     (org-roam--org-file-p path))
-            (goto-char start)
-            (let* ((element (org-element-at-point))
-                   (begin (or (org-element-property :content-begin element)
-                              (org-element-property :begin element)))
-                   (content (or (org-element-property :raw-value element)
-                                (buffer-substring
-                                 begin
-                                 (or (org-element-property :content-end element)
-                                     (org-element-property :end element)))))
-                   (content (string-trim content)))
-              (vector file-path
-                      (file-truename (expand-file-name path (file-name-directory file-path)))
-                      (list :content content :point begin)))))))))
+                       (file-truename (buffer-file-name))))
+        (md-links))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
+        (let* ((to-file (concat (match-string-no-properties 1) ".md"))
+               (end (match-end 1))
+               (begin-of-block)
+               (end-of-block)
+               (content))
+          (when (f-file-p to-file)
+            ;; get the text block = content around the link as context
+            (forward-sentence)
+            (setq end-of-block (point))
+            (backward-sentence)
+            (setq begin-of-block (point))
+            (setq content (buffer-substring-no-properties begin-of-block end-of-block))
+            (goto-char end) ; move back to the end of the regexp for the loop
+            (setq md-links
+                  (append md-links
+                          (list (vector
+                                 file-path
+                                 (file-truename
+                                  (expand-file-name to-file (file-name-directory file-path)))
+                                 (list :content content :point begin-of-block)))))))))
+      md-links))
 
 (defun org-roam--extract-titles ()
   "Extract the titles from current buffer.

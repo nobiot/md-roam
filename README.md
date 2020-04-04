@@ -3,11 +3,18 @@
 
 This is a clone of [org-roam by Jethro
 Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
+
 It's adapted to support markdown files in parallel with org files.
-It currently supports (hard coded) `.md` extension only.
-In order to enable the backlinks in the way of org-roam, the org's link syntax
-needs to be used within the markdown files. I suggest to use:
-  `org-roam-insert-link (C-c n i)`
+
+It currently supports the following markdown related features (2020-04-04): 
+- `.md` extension only.(hard coded)
+- `title: Note's Title` in the YAML frontmatter deliniated by `---`
+- `[[wiki link]]` (still experienmtal on the `feat/wiki-link` branch)
+
+The standard `org-roam` features are [should be] still supported. This means you can use 
+the standard `org` formats in your `.md` files:
+- `#+TILTLE: org title`
+- `[[file:linked-file.org][Note's Title]]`
 
 Important links:
 
