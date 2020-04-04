@@ -132,6 +132,18 @@ Has an effect if and only if `org-roam-buffer-position' is `top' or `bottom'."
   :type 'boolean
   :group 'org-roam)
 
+;;;; md-roam addtional variables
+(defvar md-roam-title-regex
+  "Regexp used to exract the title of a markdown file.
+This regex is to extract `title: value` assumed to be inside the YAML
+frontmatter."
+  (concat "\\(^title:[[:blank:]]*\\)"   ; The line needs to begin with 'title:',
+                                        ; followed by 0-n spaces or tabs.
+                                        ; YAML might insist on whitespace, but
+                                        ; here we can be more lenient
+          "\\(.+\n\\)" ; Actual title string (1-n characters)
+                      ))
+
 ;;; Utilities
 ;;;; General Utilities
 (defun org-roam--plist-to-alist (plist)
