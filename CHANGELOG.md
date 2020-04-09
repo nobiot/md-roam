@@ -2,7 +2,7 @@
 
 ## 1.0.3-md (2020-04-09)
 Enables `[[wikilink]]` syntax to add a backlink (very experimental) to your
-`org-roam` files (`.md` or `.org`).
+`org-roam` files (`.md` or `.org`; the linked file is assumed to be `.md`).
 
 Try at your own risk. It is unlikely that you lose any file; however,  you may
 need to go back to original `org-roam`, and then remove and re-build the db
@@ -10,8 +10,7 @@ file.
 
 There are a couple of assumptions:
 
-1. It is assumed that [[wikilink]] is a file name wihtout its file extension, as
-        below: `[[wikilink]]` -> `wikilink.md`
+1. It is assumed that [[wikilink]] is a file name wihtout its file extension: `[[wikilink]]` -> `wikilink.md`
 2. Both "link from" and "link to" files are in the same directory (and an
 `org-roam-directory`) Subdirectory should work, but I don't use it so not really
 tested (`[[subdirectory/file-name-without-extension]]`)
@@ -19,7 +18,7 @@ tested (`[[subdirectory/file-name-without-extension]]`)
 
 I might enable `.org` in addtion to `.md` for compatibility, but Jethro
 (original author) seems very actively enhancing how `org-roam` treats links;
-therefore, I will wait until how the new changes in the upstream pans out.
+therefore, I will wait until how new changes in the upstream pan out.
 
 ## 1.0.2 (2020-03-24)
 TODO The version numbers are confusing with the upstream `org-roam`.
