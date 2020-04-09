@@ -282,16 +282,14 @@ it as FILE-PATH."
                                  (list :content content :point begin))))))))
         (md-links (md-roam--extract-links file-path)))
     (when md-links
-      (setq links (append links md-links)))
+      (setq links (append md-links links)))
     links))
 
-(defun md-roam--extract-links(&optional file-path)
+(defun md-roam--extract-links(file-path)
   "Extract links in the form of [[link]].
 Treatmetn of FILE-PATH is identical with org-roam--extract-links.
 Add the part to get the true filename of from- and to-files both."
-  (let ((file-path (or file-path
-                       (file-truename (buffer-file-name))))
-        (md-links))
+  (let (md-links)
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
@@ -310,11 +308,9 @@ Add the part to get the true filename of from- and to-files both."
             (goto-char end) ; move back to the end of the regexp for the loop
             (setq md-links
                   (append md-links
-                          (list (vector
-                                 file-path
-                                 (file-truename
-                                  (expand-file-name to-file (file-name-directory file-path)))
-                                 (list :content content :point begin-of-block)))))))))
+                          (list (vector file-path ; file-from
+                                        (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
+                                        (list :content content :point begin-of-block))))))))) ; properties
       md-links))
 
 (defun org-roam--extract-titles ()
