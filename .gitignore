@@ -1,2 +1,7 @@
 /.sandbox/
 **/*.elc
+/extract-test.md
+*-*T*.md
+extract-links.org
+test.el
+md-roam--extract-links.el
