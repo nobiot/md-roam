@@ -1,54 +1,62 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 ## Synopsis
 
-This is a clone of [org-roam by Jethro
+`md-roam` is a clone of [org-roam by Jethro
 Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
 
 It's adapted to support markdown files in parallel with org files.
 
-It currently supports the following markdown related features (2020-04-04): 
+It currently supports the following markdown related features (2020-04-10):
+
 - `.md` extension only.(hard coded)
-- `title: Note's Title` in the YAML frontmatter deliniated by `---`
-- `[[wiki link]]` (still experienmtal on the `feat/wiki-link` branch)
+- `title: Note's Title` in the YAML frontmatter delineated by `---` (no support
+  for TOML or MMD syntax)
+- Backlink for the `[[wiki-link]]` syntax (still very experimental)
+- `org-roam-insert` to insert `[[filename-without-extension]]` to create back
+  links
+  
+I am trying to closely trail the upstream `org-roam` development; nevertheless,
+  as it is being actively developed, `md-roam` is usually lagging a bit behind.
+  As of 2020-04-10, it is based on upstream commit 4ca2606; this version is yet
+  to support citation backlinks with using `org-ref`. I don't use `org-ref`, so
+  I'll think of another way to support citation backlinks, something like `[@bibkey]` like
+  `[@Ota2020]`. I need to see where my skill boundaries are... 
+
 
 The standard `org-roam` features are [should be] still supported. This means you can use 
-the standard `org` formats in your `.md` files:
+the standard `org-roam` related `org` syntax in your `.md` files, such as:
 - `#+TILTLE: org title`
 - `[[file:linked-file.org][Note's Title]]`
-
-Important links:
-
-- **[Documentation][docs]**
-- **[Org-roam Slack][slack]**
 
 
 ## Installation
 
-You can install `org-roam` using `package.el`:
+I use [Doom
+Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
+With it, you can use GitLab, GitHub (mirrored), or clone this repo to your
+local, and add respective one of these below. Don't forget to `doom sync`.
 
+``` emacs-lisp
+(package! org-roam-mode
+  :recipe (:gitlab
+  :repo "nobiot/md-roam"))
 ```
-M-x package-install RET org-roam RET
+
+``` emacs-lisp
+(package! org-roam-mode
+  :recipe (:github
+  :repo "nobiot/md-roam"))
 ```
 
-Here's a sample configuration with using `use-package`:
 
-```emacs-lisp
-(use-package org-roam
-      :hook 
-      (after-init . org-roam-mode)
-      :custom
-      (org-roam-directory "/path/to/org-files/")
-      :bind (:map org-roam-mode-map
-              (("C-c n l" . org-roam)
-               ("C-c n f" . org-roam-find-file)
-               ("C-c n g" . org-roam-show-graph))
-              :map org-mode-map
-              (("C-c n i" . org-roam-insert))))
+``` emacs-lisp
+(package! org-roam-mode
+  :recipe (:local-repo "path/to/your-local-repos/md-roam"))
 ```
 
 For more detailed installation and configuration instructions (including for
-Doom and Spacemacs users), please see [the
-documentation](https://org-roam.readthedocs.io/en/master/installation/).
+Doom and Spacemacs users), please see [the `org-roam`
+documentation](https://org-roam.readthedocs.io/en/master/installation/). 
 
 ## Knowledge Bases using Org-roam
 
@@ -61,8 +69,9 @@ A changelog is being maintained [here](CHANGELOG.md)
 
 ## License
 
-Copyright © Jethro Kuan and contributors. Distributed under the GNU
-General Public License, Version 3
+Md-Roam: Copyright © Noboru Ota
+Org-Roam: Copyright © Jethro Kuan and contributors. 
+Distributed under the GNU General Public License, Version 3
 
 [roamresearch]: https://www.roamresearch.com/
 [org]: https://orgmode.org/
