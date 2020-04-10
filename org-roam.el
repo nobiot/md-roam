@@ -454,9 +454,12 @@ If PREFIX, downcase the title before insertion."
         (progn
           (when region ;; Remove previously selected text.
             (delete-region (car region) (cdr region)))
-          (if "md" (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))
-            (insert (md-roam--format-link target-file-path link-description))
-           (insert (org-roam--format-link target-file-path link-description))))
+          ;; md-roam adaptation
+          ;; If you are in an md file, you add [[wikilink]], if not the org link
+          (if  (string= "md" (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer))))
+              (insert (md-roam--format-link target-file-path link-description))
+            (insert (org-roam--format-link target-file-path link-description))))
+
       (if org-roam-capture--in-process
           (user-error "Nested Org-roam capture processes not supported")
         (let ((org-roam-capture--info (list (cons 'title title)
