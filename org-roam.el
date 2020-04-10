@@ -418,6 +418,16 @@ I will move these issues to GitHub/GitLab."
      (concat "file:" (file-relative-name target here))
      description)))
 
+(defun md-roam--format-link (target &optional description)
+  "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION."
+  (let* ((here (-> (or (buffer-base-buffer)
+                       (current-buffer))
+                   (buffer-file-name)
+                   (file-truename)
+                   (file-name-directory))))
+    (concat "[[" (file-name-sans-extension (file-relative-name target here)) "]]"
+            " " description)))
+
 (defun org-roam-insert (prefix)
   "Find an Org-roam file, and insert a relative org link to it at point.
 If PREFIX, downcase the title before insertion."
@@ -444,7 +454,9 @@ If PREFIX, downcase the title before insertion."
         (progn
           (when region ;; Remove previously selected text.
             (delete-region (car region) (cdr region)))
-          (insert (org-roam--format-link target-file-path link-description)))
+          (if "md" (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))
+            (insert (md-roam--format-link target-file-path link-description))
+           (insert (org-roam--format-link target-file-path link-description))))
       (if org-roam-capture--in-process
           (user-error "Nested Org-roam capture processes not supported")
         (let ((org-roam-capture--info (list (cons 'title title)
