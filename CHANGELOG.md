@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.0.3-md (2020-04-09)
+## 1.0.3-md (2020-04-10)
+
+## Features
+* Enable `[[wikilink]]` syntax to add a backlink (very experimental)
+* Enable `org-roam-insert` to insert `[[wikilink]]` when in `.md` file
+
+## Notes
 Enables `[[wikilink]]` syntax to add a backlink (very experimental) to your
 `org-roam` files (`.md` or `.org`; the linked file is assumed to be `.md`).
 
