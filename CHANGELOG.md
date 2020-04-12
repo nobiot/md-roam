@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4-md (tbd)
+
+* Merged with upstream commit 772505b, which includes `org-ref` support
+
 ## 1.0.3-md (2020-04-10)
 
 ## Features
