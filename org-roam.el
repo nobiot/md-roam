@@ -294,8 +294,8 @@ Add the part to get the true filename of from- and to-files both."
             (setq md-links
                   (append md-links
                           (list (vector file-path ; file-from
-                                        link-type
                                         (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
+                                        link-type ;
                                         (list :content content :point begin-of-block))))))))) ; properties
       md-links))
 
