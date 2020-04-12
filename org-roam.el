@@ -264,15 +264,17 @@ it as FILE-PATH."
                                         path))
                                  link-type
                                  (list :content content :point begin))))))))
-         (md-links (md-roam--extract-links file-path)))
+         (md-links (md-roam--extract-links file-path))
+         (md-cite-links (md-roam--extract-cite-links file-path)))
     (when md-links
       (setq links (append md-links links)))
+    (when md-cite-links
+      (setq links (append md-cite-links links)))
     links))
 
-(defun md-roam--extract-links(file-path)
+(defun md-roam--extract-links (file-path)
   "Extract links in the form of [[link]].
-Treatmetn of FILE-PATH is identical with org-roam--extract-links.
-Add the part to get the true filename of from- and to-files both."
+FILE-PATH is mandatory as org-roam--extract-links identifies it."
   (let (md-links)
     (save-excursion
       (goto-char (point-min))
@@ -298,6 +300,34 @@ Add the part to get the true filename of from- and to-files both."
                                         link-type ;
                                         (list :content content :point begin-of-block))))))))) ; properties
       md-links))
+
+(defun md-roam--extract-cite-links (file-path)
+  "Extract cites defined by @bibkey.
+FILE-PATH is mandatory as org-roam--extract-links identifies it."
+  (let (md-cite-links)
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "^[[:space:]]*\\((@.*?).*\\)$" nil t)
+        (let* ((to-file (match-string-no-properties 1))
+               (end (match-end 1))
+               (begin-of-block)
+               (end-of-block)
+               (content)
+               (link-type "cite"))
+          (when to-file)
+          (forward-sentence)
+          (setq end-of-block (point))
+          (backward-sentence)
+          (setq begin-of-block (point))
+          (setq content (buffer-substring-no-properties begin-of-block end-of-block))
+          (goto-char end) ; move back to the end of the regexp for the loop
+          (setq md-cite-links
+                (append md-cite-links
+                        (list (vector file-path ; file-from
+                                      to-file
+                                      link-type
+                                      (list :content content :point begin-of-block))))))))  ; properties
+    md-cite-links))
 
 (defun org-roam--extract-titles ()
   "Extract the titles from current buffer.
