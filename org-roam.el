@@ -61,6 +61,7 @@
 
 ;; To detect cite: links
 (require 'org-ref nil t)
+(require 'pandoc-mode nil t) ;for cite regex
 
 ;;;; Customizable Variables
 (defgroup org-roam nil
@@ -265,7 +266,11 @@ it as FILE-PATH."
                                  link-type
                                  (list :content content :point begin))))))))
          (md-links (md-roam--extract-links file-path))
-         (md-cite-links (md-roam--extract-cite-links file-path)))
+         (md-cite-links))
+    (when (require 'pandoc-mode nil t)
+      (md-roam--extract-cite-links file-path));pandoc-prerequisite for extracting
+                                        ;pandoc markdown citation syntax for pandoc-citeproc
+                                        ;[@bibky], @bibky, -@bibky, and so on
     (when md-links
       (setq links (append md-links links)))
     (when md-cite-links
@@ -307,7 +312,7 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
   (let (md-cite-links)
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward "^[[:space:]]*\\((@.*?).*\\)$" nil t)
+      (while (re-search-forward pandoc-regex-parenthetical-citation-single nil t)
         (let* ((to-file (match-string-no-properties 1))
                (end (match-end 1))
                (begin-of-block)
