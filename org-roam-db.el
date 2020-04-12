@@ -31,6 +31,7 @@
 ;;
 ;;; Code:
 ;;;; Library Requires
+(eval-when-compile (require 'subr-x))
 (require 'emacsql)
 (require 'emacsql-sqlite)
 (require 'org-roam-macs)
@@ -41,8 +42,8 @@
 (declare-function org-roam--extract-titles      "org-roam")
 (declare-function org-roam--extract-ref         "org-roam")
 (declare-function org-roam--extract-links       "org-roam")
-(declare-function org-roam--maybe-update-buffer "org-roam")
 (declare-function org-roam--list-files          "org-roam")
+(declare-function org-roam-buffer--update-maybe "org-roam-buffer")
 
 ;;;; Options
 (defcustom org-roam-db-location nil
@@ -54,27 +55,21 @@ when used with multiple Org-roam instances."
   :type 'string
   :group 'org-roam)
 
-(defconst org-roam-db--version 1)
+(defconst org-roam-db--version 2)
 (defconst org-roam-db--sqlite-available-p
   (with-demoted-errors "Org-roam initialization: %S"
     (emacsql-sqlite-ensure-binary)
     t))
 
-(defvaralias 'org-roam--db-connection 'org-roam-db--connection)
-(make-obsolete-variable 'org-roam--db-connection 'org-roam-db--connection "2020/03/28")
 (defvar org-roam-db--connection (make-hash-table :test #'equal)
   "Database connection to Org-roam database.")
 
-
 ;;;; Core Functions
-(defalias 'org-roam--get-db 'org-roam-db--get)
-(make-obsolete 'org-roam--get-db 'org-roam-db--get "2020/03/28")
 (defun org-roam-db--get ()
   "Return the sqlite db file."
   (interactive "P")
   (or org-roam-db-location
       (expand-file-name "org-roam.db" org-roam-directory)))
-
 
 (defun org-roam-db--get-connection ()
   "Return the database connection, if any."
@@ -112,8 +107,6 @@ Performs a database upgrade when required."
   (org-roam-db--get-connection))
 
 ;;;; Entrypoint: (org-roam-db-query)
-(defalias 'org-roam-sql 'org-roam-db-query)
-(make-obsolete 'org-roam-sql 'org-roam-db-query "2020/03/28")
 (defun org-roam-db-query (sql &rest args)
   "Run SQL query on Org-roam database with ARGS.
 SQL can be either the emacsql vector representation, or a string."
@@ -126,17 +119,16 @@ SQL can be either the emacsql vector representation, or a string."
   '((files
      [(file :unique :primary-key)
       (hash :not-null)
-      (last-modified :not-null)
-      ])
+      (last-modified :not-null)])
 
-    (file-links
-     [(file-from :not-null)
-      (file-to :not-null)
+    (links
+     [(from :not-null)
+      (to :not-null)
+      (type :not-null)
       (properties :not-null)])
 
     (titles
-     [
-      (file :not-null)
+     [(file :not-null)
       titles])
 
     (refs
@@ -154,7 +146,11 @@ SQL can be either the emacsql vector representation, or a string."
   "Upgrades the database schema for DB, if VERSION is old."
   (emacsql-with-transaction db
     'ignore
-    ;; Do nothing now
+    (when (= version 1)
+      (progn
+        (warn "No good way to perform a DB upgrade, rebuilding from scratch...")
+        (delete-file (org-roam-db--get))
+        (org-roam-db-build-cache)))
     version))
 
 (defun org-roam-db--close (&optional db)
@@ -185,15 +181,13 @@ the current `org-roam-directory'."
     (error "[Org-roam] your cache isn't built yet! Please run org-roam-db-build-cache")))
 
 ;;;;; Clearing
-(defalias 'org-roam--db-clear 'org-roam-db--clear)
-(make-obsolete 'org-roam--db-clear 'org-roam-db--clear "2020/03/28")
 (defun org-roam-db--clear ()
   "Clears all entries in the caches."
   (interactive)
   (when (file-exists-p (org-roam-db--get))
     (org-roam-db-query [:delete :from files])
     (org-roam-db-query [:delete :from titles])
-    (org-roam-db-query [:delete :from file-links])
+    (org-roam-db-query [:delete :from links])
     (org-roam-db-query [:delete :from refs])))
 
 
@@ -204,38 +198,38 @@ This is equivalent to removing the node from the graph."
                    (buffer-file-name)))
          (file (file-truename path)))
     (org-roam-db-query [:delete :from files
-                                :where (= file $s1)]
+                        :where (= file $s1)]
                        file)
-    (org-roam-db-query [:delete :from file-links
-                                :where (= file-from $s1)]
+    (org-roam-db-query [:delete :from links
+                        :where (= from $s1)]
                        file)
     (org-roam-db-query [:delete :from titles
-                                :where (= file $s1)]
+                        :where (= file $s1)]
                        file)
     (org-roam-db-query [:delete :from refs
-                                :where (= file $s1)]
+                        :where (= file $s1)]
                        file)))
 
 ;;;;; Insertion
 (defun org-roam-db--insert-links (links)
   "Insert LINKS into the Org-roam cache."
   (org-roam-db-query
-   [:insert :into file-links
-            :values $v1]
+   [:insert :into links
+    :values $v1]
    links))
 
 (defun org-roam-db--insert-titles (file titles)
   "Insert TITLES for a FILE into the Org-roam cache."
   (org-roam-db-query
    [:insert :into titles
-            :values $v1]
+    :values $v1]
    (list (vector file titles))))
 
 (defun org-roam-db--insert-ref (file ref)
   "Insert REF for FILE into the Org-roam cache."
   (org-roam-db-query
    [:insert :into refs
-            :values $v1]
+    :values $v1]
    (list (vector ref file))))
 
 ;;;;; Fetching
@@ -250,16 +244,69 @@ This is equivalent to removing the node from the graph."
 (defun org-roam-db--get-titles (file)
   "Return the titles of FILE from the cache."
   (caar (org-roam-db-query [:select [titles] :from titles
-                                    :where (= file $s1)]
+                            :where (= file $s1)]
                            file
                            :limit 1)))
+
+(defun org-roam-db--connected-component (file)
+  "Return all files reachable from/connected to FILE, including the file itself.
+If the file does not have any connections, nil is returned."
+  (let* ((query "WITH RECURSIVE
+                   links_of(file, link) AS
+                     (WITH roamlinks AS (SELECT * FROM links WHERE \"type\" = '\"roam\"'),
+                           citelinks AS (SELECT * FROM links
+                                                  JOIN refs ON links.\"to\" = refs.\"ref\"
+                                                            AND links.\"type\" = '\"cite\"')
+                      SELECT \"from\", \"to\" FROM roamlinks UNION
+                      SELECT \"to\", \"from\" FROM roamlinks UNION
+                      SELECT \"file\", \"from\" FROM citelinks UNION
+                      SELECT \"from\", \"file\" FROM citelinks),
+                   connected_component(file) AS
+                     (SELECT link FROM links_of WHERE file = $s1
+                      UNION
+                      SELECT link FROM links_of JOIN connected_component USING(file))
+                   SELECT * FROM connected_component;")
+         (files (mapcar 'car-safe (emacsql (org-roam-db) query file))))
+    files))
+
+(defun org-roam-db--links-with-max-distance (file max-distance)
+  "Return all files reachable from/connected to FILE in at most MAX-DISTANCE steps,
+including the file itself.  If the file does not have any connections, nil is returned."
+  (let* ((query "WITH RECURSIVE
+                   links_of(file, link) AS
+                     (WITH roamlinks AS (SELECT * FROM links WHERE \"type\" = '\"roam\"'),
+                           citelinks AS (SELECT * FROM links
+                                                  JOIN refs ON links.\"to\" = refs.\"ref\"
+                                                            AND links.\"type\" = '\"cite\"')
+                      SELECT \"from\", \"to\" FROM roamlinks UNION
+                      SELECT \"to\", \"from\" FROM roamlinks UNION
+                      SELECT \"file\", \"from\" FROM citelinks UNION
+                      SELECT \"from\", \"file\" FROM citelinks),
+                   -- Links are traversed in a breadth-first search.  In order to calculate the
+                   -- distance of nodes and to avoid following cyclic links, the visited nodes
+                   -- are tracked in 'trace'.
+                   connected_component(file, trace) AS
+                     (VALUES($s1, json_array($s1))
+                      UNION
+                      SELECT lo.link, json_insert(cc.trace, '$[' || json_array_length(cc.trace) || ']', lo.link) FROM
+                      connected_component AS cc JOIN links_of AS lo USING(file)
+                      WHERE (
+                        -- Avoid cycles by only visiting each file once.
+                        (SELECT count(*) FROM json_each(cc.trace) WHERE json_each.value == lo.link) == 0
+                        -- Note: BFS is cut off early here.
+                        AND json_array_length(cc.trace) < ($s2 + 1)))
+                   SELECT DISTINCT file, min(json_array_length(trace)) AS distance
+                   FROM connected_component GROUP BY file ORDER BY distance;")
+         ;; In principle the distance would be available in the second column.
+         (files (mapcar 'car-safe (emacsql (org-roam-db) query file max-distance))))
+    files))
 
 ;;;;; Updating
 (defun org-roam-db--update-titles ()
   "Update the title of the current buffer into the cache."
   (let ((file (file-truename (buffer-file-name))))
     (org-roam-db-query [:delete :from titles
-                                :where (= file $s1)]
+                        :where (= file $s1)]
                        file)
     (org-roam-db--insert-titles file (org-roam--extract-titles))))
 
@@ -267,7 +314,7 @@ This is equivalent to removing the node from the graph."
   "Update the ref of the current buffer into the cache."
   (let ((file (file-truename (buffer-file-name))))
     (org-roam-db-query [:delete :from refs
-                                :where (= file $s1)]
+                        :where (= file $s1)]
                        file)
     (when-let ((ref (org-roam--extract-ref)))
       (org-roam-db--insert-ref file ref))))
@@ -275,8 +322,8 @@ This is equivalent to removing the node from the graph."
 (defun org-roam-db--update-cache-links ()
   "Update the file links of the current buffer in the cache."
   (let ((file (file-truename (buffer-file-name))))
-    (org-roam-db-query [:delete :from file-links
-                                :where (= file-from $s1)]
+    (org-roam-db-query [:delete :from links
+                        :where (= from $s1)]
                        file)
     (when-let ((links (org-roam--extract-links)))
       (org-roam-db--insert-links links))))
@@ -292,11 +339,9 @@ This is equivalent to removing the node from the graph."
         (org-roam-db--update-titles)
         (org-roam-db--update-refs)
         (org-roam-db--update-cache-links)
-        (org-roam--maybe-update-buffer :redisplay t)))))
+        (org-roam-buffer--update-maybe :redisplay t)))))
 
 ;;;;; org-roam-db-build-cache
-(defalias 'org-roam-build-cache 'org-roam-db-build-cache)
-(make-obsolete 'org-roam-build-cache 'org-roam-db-build-cache "2020/03/28")
 (defun org-roam-db-build-cache ()
   "Build the cache for `org-roam-directory'."
   (interactive)
@@ -328,22 +373,22 @@ This is equivalent to removing the node from the graph."
     (when all-files
       (org-roam-db-query
        [:insert :into files
-                :values $v1]
+        :values $v1]
        all-files))
     (when all-links
       (org-roam-db-query
-       [:insert :into file-links
-                :values $v1]
+       [:insert :into links
+        :values $v1]
        all-links))
     (when all-titles
       (org-roam-db-query
        [:insert :into titles
-                :values $v1]
+        :values $v1]
        all-titles))
     (when all-refs
       (org-roam-db-query
        [:insert :into refs
-                :values $v1]
+        :values $v1]
        all-refs))
     (let ((stats (list :files (length all-files)
                        :links (length all-links)

@@ -38,6 +38,8 @@
 (defvar org-roam-directory)
 (declare-function org-roam-db--ensure-built  "org-roam-db")
 (declare-function org-roam-db-query          "org-roam-db")
+(declare-function org-roam-db--connected-component "org-roam-db")
+(declare-function org-roam--org-roam-file-p  "org-roam")
 (declare-function org-roam--path-to-slug     "org-roam")
 
 ;;;; Options
@@ -51,10 +53,6 @@
   :type 'string
   :group 'org-roam)
 
-(defvaralias 'org-roam-graphviz-extra-options 'org-roam-graph-extra-config)
-(defvaralias 'org-roam-grapher-extra-options  'org-roam-graph-extra-config)
-(make-obsolete-variable 'org-roam-graphviz-extra-options 'org-roam-graph-extra-config "2020/03/31")
-(make-obsolete-variable 'org-roam-grapher-extra-options  'org-roam-graph-extra-config "2020/03/31")
 (defcustom org-roam-graph-extra-config nil
   "Extra options passed to graphviz.
 Example:
@@ -66,6 +64,20 @@ Example:
   "Extra options for graphviz nodes.
 Example:
  '((\"color\" . \"skyblue\"))"
+  :type '(alist)
+  :group 'org-roam)
+
+(defcustom org-roam-graph-edge-extra-config nil
+  "Extra options for graphviz edges.
+Example:
+ '((\"dir\" . \"back\"))"
+  :type '(alist)
+  :group 'org-roam)
+
+(defcustom org-roam-graph-edge-cites-extra-config '(("color" . "red"))
+  "Extra options for graphviz edges for citation links.
+Example:
+ '((\"dir\" . \"back\"))"
   :type '(alist)
   :group 'org-roam)
 
@@ -122,39 +134,53 @@ set WHERE to true if WHERE query already exists."
       (push match res))
     (nreverse res)))
 
-(defun org-roam-graph--build ()
-  "Build the graph output string.
+(defun org-roam-graph--build (node-query)
+  "Build the graphviz string for NODE-QUERY.
 The Org-roam database titles table is read, to obtain the list of titles.
-The file-links table is then read to obtain all directed links, and formatted
+The links table is then read to obtain all directed links, and formatted
 into a digraph."
   (org-roam-db--ensure-built)
   (org-roam--with-temp-buffer
-    (let* ((node-query `[:select [file titles]
-                                 :from titles
-                                 ,@(org-roam-graph--expand-matcher 'file t)])
-           (nodes (org-roam-db-query node-query))
-           (edges-query `[:select :distinct [file-to file-from]
-                                  :from file-links
-                                  ,@(org-roam-graph--expand-matcher 'file-to t)
-                                  ,@(org-roam-graph--expand-matcher 'file-from t t)])
-           (edges (org-roam-db-query edges-query)))
+    (let* ((nodes (org-roam-db-query node-query))
+           (edges-query
+            `[:with selected :as [:select [file] :from ,node-query]
+              :select :distinct [to from] :from links
+              :where (and (in to selected) (in from selected))])
+           (edges-cites-query
+            `[:with selected :as [:select [file] :from ,node-query]
+              :select :distinct [file from]
+              :from links :inner :join refs :on (and (= links:to refs:ref) (= links:type "cite"))
+              :where (and (in file selected) (in from selected))])
+           (edges (org-roam-db-query edges-query))
+           (edges-cites (org-roam-db-query edges-cites-query)))
       (insert "digraph \"org-roam\" {\n")
+
       (dolist (option org-roam-graph-extra-config)
-        (insert (concat (car option)
+        (insert (concat "  "
+                        (car option)
                         "="
                         (cdr option)
                         ";\n")))
+      (insert (format "  node [%s];\n"
+                      (->> org-roam-graph-node-extra-config
+                           (mapcar (lambda (n)
+                                     (concat (car n) "=" (cdr n))))
+                           (s-join ","))))
+      (insert (format "  edge [%s];\n"
+                      (->> org-roam-graph-edge-extra-config
+                           (mapcar (lambda (n)
+                                     (concat (car n) "=" (cdr n))))
+                           (s-join ","))))
+
       (dolist (node nodes)
         (let* ((file (xml-escape-string (car node)))
                (title (or (caadr node)
                           (org-roam--path-to-slug file)))
                (shortened-title (s-truncate org-roam-graph-max-title-length title))
-               (base-node-properties (list (cons "label" (s-replace "\"" "\\\"" shortened-title))
-                                           (cons "URL" (concat "org-protocol://roam-file?file="
-                                                               (url-hexify-string file)))
-                                           (cons "tooltip" (xml-escape-string title))))
-               (node-properties (append base-node-properties
-                                        org-roam-graph-node-extra-config)))
+               (node-properties (list (cons "label" (s-replace "\"" "\\\"" shortened-title))
+                                      (cons "URL" (concat "org-protocol://roam-file?file="
+                                                          (url-hexify-string file)))
+                                      (cons "tooltip" (xml-escape-string title)))))
           (insert
            (format "  \"%s\" [%s];\n"
                    file
@@ -166,30 +192,72 @@ into a digraph."
         (insert (format "  \"%s\" -> \"%s\";\n"
                         (xml-escape-string (car edge))
                         (xml-escape-string (cadr edge)))))
+
+      (insert (format "  edge [%s];\n"
+                      (->> org-roam-graph-edge-cites-extra-config
+                           (mapcar (lambda (n)
+                                     (concat (car n) "=" (cdr n))))
+                           (s-join ","))))
+      (dolist (edge edges-cites)
+        (insert (format "  \"%s\" -> \"%s\";\n"
+                        (xml-escape-string (car edge))
+                        (xml-escape-string (cadr edge)))))
       (insert "}")
       (buffer-string))))
 
-(defalias 'org-roam-show-graph 'org-roam-graph-show)
-(make-obsolete 'org-roam-show-graph 'org-roam-graph-show "2020/03/28")
-(defun org-roam-graph-show (&optional prefix)
-  "Generate and displays the Org-roam graph using `org-roam-graph-viewer'.
-If PREFIX, then the graph is generated but the viewer is not invoked."
-  (interactive "P")
-  (declare (indent 0))
+(defun org-roam-graph-build (&optional node-query)
+  "Generate a graph showing the relations between nodes in NODE-QUERY.
+For building and showing the graph in a single step see `org-roam-graph-show'."
+  (interactive)
   (unless org-roam-graph-executable
     (user-error "Can't find %s executable.  Please check if it is in your path"
                 org-roam-graph-executable))
-  (let ((temp-dot (expand-file-name "graph.dot" temporary-file-directory))
-        (temp-graph (expand-file-name "graph.svg" temporary-file-directory))
-        (graph (org-roam-graph--build)))
+  (let* ((temp-dot (expand-file-name "graph.dot" temporary-file-directory))
+         (temp-graph (expand-file-name "graph.svg" temporary-file-directory))
+         (node-query (or node-query `[:select [file titles]
+                                      :from titles
+                                      ,@(org-roam-graph--expand-matcher 'file t)]))
+         (graph (org-roam-graph--build node-query)))
     (with-temp-file temp-dot
       (insert graph))
     (call-process org-roam-graph-executable nil 0 nil temp-dot "-Tsvg" "-o" temp-graph)
-    (unless prefix
-      (if (and org-roam-graph-viewer (executable-find org-roam-graph-viewer))
-	        (call-process org-roam-graph-viewer nil 0 nil temp-graph)
-        (view-file temp-graph)))))
+    temp-graph))
 
+(defun org-roam-graph--open (file)
+  "Open FILE using `org-roam-graph-viewer', with `view-file' as a fallback."
+  (if (and org-roam-graph-viewer (executable-find org-roam-graph-viewer))
+      (call-process org-roam-graph-viewer nil 0 nil file)
+    (view-file temp-graph)))
+
+(defun org-roam-graph-show (&optional node-query)
+  "Generate and display a graph showing the relations between nodes in NODE-QUERY.
+The graph is generated using `org-roam-graph-build' and subsequently displayed
+using `org-roam-graph-viewer', if it refers to a valid executable, or using
+`view-file' otherwise."
+  (interactive)
+  (org-roam-graph--open (org-roam-graph-build node-query)))
+
+(defun org-roam-graph-build-connected-component (&optional max-distance)
+  "Like `org-roam-graph-build', but only include nodes connected to the current entry.
+If MAX-DISTANCE is non-nil, only nodes within the given number of steps are shown."
+  (interactive "P")
+  (unless (org-roam--org-roam-file-p)
+    (user-error "Not in an Org-roam file"))
+  (let* ((file (file-truename (buffer-file-name)))
+         (files (or (if (and max-distance (>= (prefix-numeric-value max-distance) 0))
+                        (org-roam-db--links-with-max-distance file max-distance)
+                      (org-roam-db--connected-component file))
+                    (list file)))
+         (query `[:select [file titles]
+                  :from titles
+                  :where (in file [,@files])]))
+    (org-roam-graph-build query)))
+
+(defun org-roam-graph-show-connected-component (&optional max-distance)
+  "Like `org-roam-graph-show', but only include nodes connected to the current entry.
+If MAX-DISTANCE is non-nil, only nodes within the given number of steps are shown."
+  (interactive "P")
+  (org-roam-graph--open (org-roam-graph-build-connected-component max-distance)))
 
 (provide 'org-roam-graph)
 

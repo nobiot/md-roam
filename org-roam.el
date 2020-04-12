@@ -51,11 +51,16 @@
 (require 'f)
 (require 'cl-lib)
 ;;;; org-roam features
+(require 'org-roam-compat)
 (require 'org-roam-macs)
 (require 'org-roam-db)
+(require 'org-roam-buffer)
 (require 'org-roam-capture)
 (require 'org-roam-graph)
 (require 'org-roam-completion)
+
+;; To detect cite: links
+(require 'org-ref nil t)
 
 ;;;; Customizable Variables
 (defgroup org-roam nil
@@ -77,19 +82,6 @@ All Org files, at any level of nesting, is considered part of the Org-roam."
   :type 'directory
   :group 'org-roam)
 
-(defcustom org-roam-buffer-position 'right
-  "Position of `org-roam' buffer.
-Valid values are
- * left,
- * right,
- * top,
- * bottom."
-  :type '(choice (const left)
-                 (const right)
-                 (const top)
-                 (const bottom))
-  :group 'org-roam)
-
 (defcustom org-roam-link-title-format "%s"
   "The formatter used when inserting Org-roam links that use their title.
 Formatter may be a function that takes title as its only argument."
@@ -98,32 +90,12 @@ Formatter may be a function that takes title as its only argument."
           (function :tag "Custom function"))
   :group 'org-roam)
 
-(defcustom org-roam-buffer-width 0.33
-  "Width of `org-roam' buffer.
-Has an effect if and only if `org-roam-buffer-position' is `left' or `right'."
-  :type 'number
-  :group 'org-roam)
-
-(defcustom org-roam-buffer-height 0.27
-  "Height of `org-roam' buffer.
-Has an effect if and only if `org-roam-buffer-position' is `top' or `bottom'."
-  :type 'number
-  :group 'org-roam)
-
-(defcustom org-roam-buffer "*org-roam*"
-  "Org-roam buffer name."
-  :type 'string
-  :group 'org-roam)
-
 (defcustom org-roam-encrypt-files nil
   "Whether to encrypt new files.  If true, create files with .org.gpg extension."
   :type 'boolean
   :group 'org-roam)
 
 ;;;; Dynamic variables
-(defvar org-roam--current-buffer nil
-  "Currently displayed file in `org-roam' buffer.")
-
 (defvar org-roam-last-window nil
   "Last window `org-roam' was called from.")
 
@@ -252,21 +224,29 @@ The search terminates when the first property is encountered."
   "Extracts all link items within the current buffer.
 Link items are of the form:
 
-    [file-from file-to properties]
+    [from to type properties]
 
 This is the format that emacsql expects when inserting into the database.
 FILE-FROM is typically the buffer file path, but this may not exist, for example
 in temp buffers.  In cases where this occurs, we do know the file path, and pass
 it as FILE-PATH."
+
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name))))
          (links (org-element-map (org-element-parse-buffer) 'link
                  (lambda (link)
-                   (let ((type (org-element-property :type link))
+                   (let* ((type (org-element-property :type link))
                          (path (org-element-property :path link))
-                         (start (org-element-property :begin link)))
-                     (when (and (string= type "file")
-                                (org-roam--org-file-p path))
+                         (start (org-element-property :begin link))
+                         (link-type (cond ((and (string= type "file")
+                                      (org-roam--org-file-p path))
+                                 "roam")
+                                ((and
+                                  (require 'org-ref nil t)
+                                  (-contains? org-ref-cite-types type))
+                                 "cite")
+                                (t nil))))
+                     (when link-type
                        (goto-char start)
                        (let* ((element (org-element-at-point))
                               (begin (or (org-element-property :content-begin element)
@@ -278,9 +258,13 @@ it as FILE-PATH."
                                                 (org-element-property :end element)))))
                               (content (string-trim content)))
                          (vector file-path
-                                 (file-truename (expand-file-name path (file-name-directory file-path)))
+                                 (cond ((string= link-type "roam")
+                                        (file-truename (expand-file-name path (file-name-directory file-path))))
+                                       ((string= link-type "cite")
+                                        path))
+                                 link-type
                                  (list :content content :point begin))))))))
-        (md-links (md-roam--extract-links file-path)))
+         (md-links (md-roam--extract-links file-path)))
     (when md-links
       (setq links (append md-links links)))
     links))
@@ -297,7 +281,8 @@ Add the part to get the true filename of from- and to-files both."
                (end (match-end 1))
                (begin-of-block)
                (end-of-block)
-               (content))
+               (content)
+               (link-type "roam"))
           (when (f-file-p to-file)
             ;; get the text block = content around the link as context
             (forward-sentence)
@@ -309,6 +294,7 @@ Add the part to get the true filename of from- and to-files both."
             (setq md-links
                   (append md-links
                           (list (vector file-path ; file-from
+                                        link-type
                                         (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
                                         (list :content content :point begin-of-block))))))))) ; properties
       md-links))
@@ -459,17 +445,16 @@ If PREFIX, downcase the title before insertion."
           (if  (string= "md" (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer))))
               (insert (md-roam--format-link target-file-path link-description))
             (insert (org-roam--format-link target-file-path link-description))))
-
-      (if org-roam-capture--in-process
-          (user-error "Nested Org-roam capture processes not supported")
-        (let ((org-roam-capture--info (list (cons 'title title)
-                                            (cons 'slug (org-roam--title-to-slug title))))
-              (org-roam-capture--context 'title))
-          (add-hook 'org-capture-after-finalize-hook #'org-roam-capture--insert-link-h)
-          (setq org-roam-capture-additional-template-props (list :region region
-                                                                 :link-description link-description
-                                                                 :capture-fn 'org-roam-insert))
-          (org-roam--capture))))))
+      (when (org-roam-capture--in-process-p)
+  (user-error "Nested Org-roam capture processes not supported"))
+      (let ((org-roam-capture--info (list (cons 'title title)
+            (cons 'slug (org-roam--title-to-slug title))))
+      (org-roam-capture--context 'title))
+  (add-hook 'org-capture-after-finalize-hook #'org-roam-capture--insert-link-h)
+  (setq org-roam-capture-additional-template-props (list :region region
+                     :link-description link-description
+                     :capture-fn 'org-roam-insert))
+  (org-roam--capture)))))
 
 ;;;; org-roam-find-file
 (defun org-roam--get-title-path-completions ()
@@ -496,7 +481,7 @@ INITIAL-PROMPT is the initial title prompt."
          (file-path (cdr (assoc title completions))))
     (if file-path
         (find-file file-path)
-      (if org-roam-capture--in-process
+      (if (org-roam-capture--in-process-p)
           (user-error "Org-roam capture in process")
         (let ((org-roam-capture--info (list (cons 'title title)
                                             (cons 'slug (org-roam--title-to-slug title))))
@@ -504,9 +489,15 @@ INITIAL-PROMPT is the initial title prompt."
           (add-hook 'org-capture-after-finalize-hook #'org-roam-capture--find-file-h)
           (org-roam--capture))))))
 
+;;;; org-roam-find-directory
+(defun org-roam-find-directory ()
+  "Find and open `org-roam-directory'."
+  (interactive)
+  (find-file org-roam-directory))
+
 ;;;; org-roam-find-ref
 (defun org-roam--get-ref-path-completions ()
-  "Return a list of cons pairs for titles to absolute path of Org-roam files."
+  "Return a list of cons pairs for refs to absolute path of Org-roam files."
   (let ((rows (org-roam-db-query [:select [ref file] :from refs])))
     (mapcar (lambda (row)
               (cons (car row)
@@ -519,7 +510,7 @@ INFO is an alist containing additional information."
   (let* ((completions (org-roam--get-ref-path-completions))
          (ref (or (cdr (assoc 'ref info))
                   (org-roam-completion--completing-read "Ref: "
-                                                        (org-roam--get-ref-path-completions)
+                                                        completions
                                                         :require-match t))))
     (find-file (cdr (assoc ref completions)))))
 
@@ -546,23 +537,6 @@ INFO is an alist containing additional information."
     (when-let ((name (org-roam-completion--completing-read "Buffer: " names-and-buffers
                                                            :require-match t)))
       (switch-to-buffer (cdr (assoc name names-and-buffers))))))
-
-;;;; org-roam-capture
-(defun org-roam-capture ()
-  "Launches an org-capture process for a new or existing note.
-This uses the templates defined at `org-roam-capture-templates'."
-  (interactive)
-  (when org-roam-capture--in-process
-    (user-error "Nested Org-roam capture processes not supported"))
-  (let* ((completions (org-roam--get-title-path-completions))
-         (title (org-roam-completion--completing-read "File: " completions))
-         (file-path (cdr (assoc title completions))))
-    (let ((org-roam-capture--info (list (cons 'title title)
-                                            (cons 'slug (org-roam--title-to-slug title))
-                                            (cons 'file file-path)))
-              (org-roam-capture--context 'capture))
-          (setq org-roam-capture-additional-template-props (list :capture-fn 'org-roam-capture))
-          (org-roam--capture))))
 
 ;;;; Daily notes
 (defcustom org-roam-date-title-format "%Y-%m-%d"
@@ -699,141 +673,17 @@ This function hooks into `org-open-at-point' via `org-open-at-point-functions'."
              (select-window org-roam-last-window))
     (find-file file)))
 
-(defun org-roam--get-backlinks (file)
-  "Return the backlinks for FILE."
-  (org-roam-db-query [:select [file-from, file-to, properties] :from file-links
-                              :where (= file-to $s1)
-                              :order-by (asc file-from)]
-                     file))
+(defun org-roam--get-backlinks (target)
+  "Return the backlinks for TARGET.
+TARGET may be a file, for Org-roam file links, or a citation key,
+for Org-ref cite links."
+  (org-roam-db-query [:select [from, to, properties] :from links
+                      :where (= to $s1)
+                      :order-by (asc from)]
+                     target))
 
-;;;; Updating the org-roam buffer
-(defun org-roam-update (file-path)
-  "Show the backlinks for given org file for file at `FILE-PATH'."
-  (org-roam-db--ensure-built)
-  (let* ((source-org-roam-directory org-roam-directory))
-    (let ((buffer-title (org-roam--get-title-or-slug file-path)))
-      (with-current-buffer org-roam-buffer
-        ;; When dir-locals.el is used to override org-roam-directory,
-        ;; org-roam-buffer should have a different local org-roam-directory and
-        ;; default-directory, as relative links are relative from the overridden
-        ;; org-roam-directory.
-        (setq-local org-roam-directory source-org-roam-directory)
-        (setq-local default-directory source-org-roam-directory)
-        ;; Locally overwrite the file opening function to re-use the
-        ;; last window org-roam was called from
-        (setq-local
-         org-link-frame-setup
-         (cons '(file . org-roam--find-file) org-link-frame-setup))
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (unless (eq major-mode 'org-mode)
-            (org-mode))
-          (unless org-roam-backlinks-mode
-            (org-roam-backlinks-mode))
-          (make-local-variable 'org-return-follows-link)
-          (setq org-return-follows-link t)
-          (insert
-           (propertize buffer-title 'font-lock-face 'org-document-title))
-          (if-let* ((backlinks (org-roam--get-backlinks file-path))
-                    (grouped-backlinks (--group-by (nth 0 it) backlinks)))
-              (progn
-                (insert (format "\n\n* %d Backlinks\n"
-                                (length backlinks)))
-                (dolist (group grouped-backlinks)
-                  (let ((file-from (car group))
-                        (bls (cdr group)))
-                    (insert (format "** [[file:%s][%s]]\n"
-                                    file-from
-                                    (org-roam--get-title-or-slug file-from)))
-                    (dolist (backlink bls)
-                      (pcase-let ((`(,file-from _ ,props) backlink))
-                        (insert (propertize
-                                 (s-trim (s-replace "\n" " "
-                                                    (plist-get props :content)))
-                                 'help-echo "mouse-1: visit backlinked note"
-                                 'file-from file-from
-                                 'file-from-point (plist-get props :point)))
-                        (insert "\n\n"))))))
-            (insert "\n\n* No backlinks!")))
-        (read-only-mode 1)))))
-
-(cl-defun org-roam--maybe-update-buffer (&key redisplay)
-  "Reconstructs `org-roam-buffer'.
-This needs to be quick or infrequent, because this is run at
-`post-command-hook'.  If REDISPLAY, force an update of
-`org-roam-buffer'."
-  (let ((buffer (window-buffer)))
-    (when (and (or redisplay
-                   (not (eq org-roam--current-buffer buffer)))
-               (eq 'visible (org-roam--current-visibility))
-               (buffer-local-value 'buffer-file-truename buffer))
-      (setq org-roam--current-buffer buffer)
-      (org-roam-update (expand-file-name
-                        (buffer-local-value 'buffer-file-truename buffer))))))
-
-;;;; Toggling the org-roam buffer
-(define-inline org-roam--current-visibility ()
-  "Return whether the current visibility state of the org-roam buffer.
-Valid states are 'visible, 'exists and 'none."
-  (declare (side-effect-free t))
-  (inline-quote
-   (cond
-    ((get-buffer-window org-roam-buffer) 'visible)
-    ((get-buffer org-roam-buffer) 'exists)
-    (t 'none))))
-
-(defun org-roam--set-width (width)
-  "Set the width of `org-roam-buffer' to `WIDTH'."
-  (unless (one-window-p)
-    (let ((window-size-fixed)
-          (w (max width window-min-width)))
-      (cond
-       ((> (window-width) w)
-        (shrink-window-horizontally  (- (window-width) w)))
-       ((< (window-width) w)
-        (enlarge-window-horizontally (- w (window-width))))))))
-
-(defun org-roam--set-height (height)
-  "Set the height of `org-roam-buffer' to `HEIGHT'."
-  (unless (one-window-p)
-    (let ((window-size-fixed)
-          (h (max height window-min-height)))
-      (cond
-       ((> (window-height) h)
-        (shrink-window  (- (window-height) h)))
-       ((< (window-height) h)
-        (enlarge-window (- h (window-height))))))))
-
-(defun org-roam--set-up-buffer ()
-  "Set up the `org-roam' buffer at the `org-roam-buffer-position'."
-  (let ((window (get-buffer-window))
-        (position
-         (if (member org-roam-buffer-position '(right left top bottom))
-             org-roam-buffer-position
-           (let ((text-quoting-style 'grave))
-             (lwarn '(org-roam) :error
-                    "Invalid org-roam-buffer-position: %s. Defaulting to \\='right"
-                    org-roam-buffer-position))
-           'right)))
-    (-> (get-buffer-create org-roam-buffer)
-        (display-buffer-in-side-window
-         `((side . ,position)))
-        (select-window))
-    (pcase position
-      ((or 'right 'left)
-       (org-roam--set-width  (round (* (frame-width)  org-roam-buffer-width))))
-      ((or 'top  'bottom)
-       (org-roam--set-height (round (* (frame-height) org-roam-buffer-height)))))
-    (select-window window)))
-
-(defun org-roam ()
-  "Pops up the window `org-roam-buffer' accordingly."
-  (interactive)
-  (setq org-roam-last-window (get-buffer-window))
-  (pcase (org-roam--current-visibility)
-    ('visible (delete-window (get-buffer-window org-roam-buffer)))
-    ('exists (org-roam--set-up-buffer))
-    ('none (org-roam--set-up-buffer))))
+;;;###autoload
+(defalias 'org-roam 'org-roam-buffer-toggle-display)
 
 ;;; The global minor org-roam-mode
 (defvar org-roam-mode-map
@@ -877,17 +727,17 @@ Otherwise, behave as if called interactively."
     (dolist (buf (org-roam--get-roam-buffers))
       (with-current-buffer buf
         (org-link-set-parameters "file" :face 'org-link)
-        (remove-hook 'post-command-hook #'org-roam--maybe-update-buffer t)
+        (remove-hook 'post-command-hook #'org-roam-buffer--update-maybe t)
         (remove-hook 'after-save-hook #'org-roam-db--update-file t))))))
 
 (defun org-roam--find-file-hook-function ()
   "Called by `find-file-hook' when mode `org-roam-mode' is on."
   (when (org-roam--org-roam-file-p)
     (setq org-roam-last-window (get-buffer-window))
-    (add-hook 'post-command-hook #'org-roam--maybe-update-buffer nil t)
+    (add-hook 'post-command-hook #'org-roam-buffer--update-maybe nil t)
     (add-hook 'after-save-hook #'org-roam-db--update-file nil t)
     (org-link-set-parameters "file" :face 'org-roam--roam-link-face)
-    (org-roam--maybe-update-buffer :redisplay nil)))
+    (org-roam-buffer--update-maybe :redisplay t)))
 
 (defun org-roam--delete-file-advice (file &optional _trash)
   "Advice for maintaining cache consistency when FILE is deleted."
@@ -901,10 +751,12 @@ Otherwise, behave as if called interactively."
              (not (auto-save-file-name-p new-file))
              (org-roam--org-roam-file-p new-file))
     (org-roam-db--ensure-built)
-    (let* ((files-to-rename (org-roam-db-query [:select :distinct [file-from]
-                                                        :from file-links
-                                                        :where (= file-to $s1)]
-                                               file))
+    (let* ((files-to-rename (org-roam-db-query [:select :distinct [from]
+                                                :from links
+                                                :where (= to $s1)
+                                                :and (= type $s2)]
+                                               file
+                                               "roam"))
            (path (file-truename file))
            (new-path (file-truename new-file))
            (slug (org-roam--get-title-or-slug file))
