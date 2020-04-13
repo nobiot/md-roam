@@ -268,7 +268,7 @@ it as FILE-PATH."
          (md-links (md-roam--extract-links file-path))
          (md-cite-links))
     (when (require 'pandoc-mode nil t)
-      (md-roam--extract-cite-links file-path));pandoc-prerequisite for extracting
+      (setq md-cite-links (md-roam--extract-cite-links file-path)));pandoc-prerequisite for extracting
                                         ;pandoc markdown citation syntax for pandoc-citeproc
                                         ;[@bibky], @bibky, -@bibky, and so on
     (when md-links
@@ -313,7 +313,7 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward pandoc-regex-parenthetical-citation-single nil t)
-        (let* ((to-file (match-string-no-properties 1))
+        (let* ((to-file (match-string-no-properties 3))
                (end (match-end 1))
                (begin-of-block)
                (end-of-block)
