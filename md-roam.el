@@ -20,6 +20,7 @@
 ;;; Code:
 ;;;
 
+(require 'dash)
 (require 's)
 (require 'org-roam)
 
@@ -30,7 +31,15 @@
                                         ; YAML might insist on whitespace, but
                                         ; here we can be more lenient
           "\\(.+\n\\)" ; Actual title string (1-n characters)
-                      ))
+          ))
+
+(defcustom md-roam-file-extensions '("md")
+  "Detected file extensions to include in the Org-roam ecosystem.
+While the file extensions may be different, the file format needs
+to be an `org-mode' file, and it is the user's responsibility to
+ensure that."
+  :type '(repeat string)
+  :group 'org-roam)
 
 ;;;; functions
 (defun md-roam--extract-title-from-current-buffer ()
@@ -142,6 +151,25 @@ It should be used in 'advice-add'."
     links))
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
+
+(defun md-roam--format-link (target &optional description)
+  "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
+Add advice to 'org-roam--format-link' within 'org-roam-inert'.
+Customize 'org-roam--file-name-extension' to define the extesion (e.g. md) that
+follow this behaviour."
+
+  (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
+    (if (member ext md-roam-file-extensions)
+        (let* ((here (-> (or (buffer-base-buffer)
+                             (current-buffer))
+                         (buffer-file-name)
+                         (file-truename)
+                         (file-name-directory))))
+          (concat "[[" (file-name-sans-extension (file-relative-name target here)) "]]"
+                  " " description))
+      nil)))
+
+(advice-add 'org-roam--format-link :before-until #'md-roam--format-link)
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
