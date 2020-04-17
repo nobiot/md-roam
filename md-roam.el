@@ -24,7 +24,9 @@
 (require 's)
 (require 'org-roam)
 
-;;;; md-roam addtional variables
+;;; Md-roam addtional variables
+
+;;; Regexp for title of markdown file in YAML frontmatter
 (defvar md-roam-title-regex
   (concat "\\(^title:[[:blank:]]*\\)"   ; The line needs to begin with 'title:',
                                         ; followed by 0-n spaces or tabs.
@@ -33,16 +35,48 @@
           "\\(.+\n\\)" ; Actual title string (1-n characters)
           ))
 
-(defcustom md-roam-file-extensions '("md")
-  "Detected file extensions to include in the Org-roam ecosystem.
-While the file extensions may be different, the file format needs
-to be an `org-mode' file, and it is the user's responsibility to
-ensure that."
+;;;  Regexp for pandoc style citation for link extraction
+;;;  Copy from pandco-mode to remove dependency
+;;
+;;   [@bibkey], [@bibkey1, xx; bibkey2, yy]
+;;   https://pandoc.org/MANUAL.html#citations
+;;
+;;   Blah blah [see @doe99, pp. 33-35; also @smith04, chap. 1].
+;;   Blah blah [@doe99, pp. 33-35, 38-39 and *passim*].
+;;   Blah blah [@smith04; @doe99].
+;;   [@smith{ii, A, D-Z}, with a suffix]
+;;   [@smith, {pp. iv, vi-xi, (xv)-(xvii)} with suffix here]
+;;
+;;   A minus sign (-) before the @ will suppress mention
+;;
+;;     Smith says blah [-@smith04].
+;;
+;;   in-text citation:
+;;
+;;     @smith04 says blah.
+;;
+;;     @smith04 [p. 33] says blah.
+
+;; With my testing, citation-2 can detect all the cases for md-roam
+
+(defvar md-roam-regex-in-text-citation-2
+  "\\(?:[^[:alnum:]]\\|^\\)\\(-?@\\)\\([-a-zA-Z0-9_+:]+\\)"
+  "Regular expression for stand-alone citation with no anchor.")
+
+;;; Md-roam customizing
+
+(defcustom md-roam-file-extension-single "md"
+  "Defines the extesion to be used for md-roam wihtin org-roam.
+Unlike 'org-roam-file-extension', this is a single value, not a list.
+It is assumed to be a markdown file extension, e.g. .md, and .markdown."
   :type '(repeat string)
   :group 'org-roam)
 
-;;; md-roam functions
-;;;; For extract titles
+;;; Md-roam functions
+
+;;;  Extracting title from markdown files (YAML frontmatter)
+;;;  Add advice to org-roam--extract-titles
+
 (defun md-roam--extract-title-from-current-buffer ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
@@ -78,7 +112,9 @@ of the title. 's-trim-left is used to remove it."
 
 (advice-add 'org-roam--extract-titles :filter-return #'md-roam--extract-titles)
 
-;;;; Extract links (wiki and cite)
+;;; Extract links in markdown file (wiki and pandocy-style cite)
+;;; Add advice to org-roam--extract-links
+
 (defun md-roam--extract-wiki-links (file-path)
   "Extract links in the form of [[link]].
 FILE-PATH is mandatory as org-roam--extract-links identifies it."
@@ -86,7 +122,7 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-        (let* ((to-file (concat (match-string-no-properties 1) ".md"))
+        (let* ((to-file (concat (match-string-no-properties 1) md-roam-file-extension-single))
                (end (match-end 1))
                (begin-of-block)
                (end-of-block)
@@ -114,17 +150,17 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
   (let (md-cite-links)
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward pandoc-regex-parenthetical-citation-single nil t)
-        (let* ((to-file (match-string-no-properties 3))
+      (while (re-search-forward md-roam-regex-in-text-citation-2 nil t)
+        (let* ((to-file (match-string-no-properties 2))
                (end (match-end 1))
                (begin-of-block)
                (end-of-block)
                (content)
                (link-type "cite"))
           (when to-file)
-          (forward-sentence)
+          (forward-paragraph)
           (setq end-of-block (point))
-          (backward-sentence)
+          (backward-paragraph)
           (setq begin-of-block (point))
           (setq content (buffer-substring-no-properties begin-of-block end-of-block))
           (goto-char end) ; move back to the end of the regexp for the loop
@@ -145,7 +181,7 @@ It should be used in 'advice-add'."
          (links (apply orginal-extract-links '(file-path)))
          (md-links (md-roam--extract-wiki-links file-path))
          (md-cite-links (md-roam--extract-cite-links file-path)))
-                                        ;TODO remove pandoc-mode dependency
+
     (when md-links
       (setq links (append md-links links)))
     (when md-cite-links
@@ -154,7 +190,9 @@ It should be used in 'advice-add'."
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
-;;;; Modify org-roam-insert
+;;;; Adapt behaviour of org-roam-insert
+;;;; Add advice to 'org-roam--format-link
+
 (defun md-roam--format-link (target &optional description)
   "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
 Add advice to 'org-roam--format-link' within 'org-roam-inert'.
@@ -162,7 +200,7 @@ Customize 'org-roam--file-name-extension' to define the extesion (e.g. md) that
 follow this behaviour."
 
   (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
-    (if (member ext md-roam-file-extensions)
+    (if (string= ext md-roam-file-extension-single)
         (let* ((here (-> (or (buffer-base-buffer)
                              (current-buffer))
                          (buffer-file-name)
