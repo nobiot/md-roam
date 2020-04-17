@@ -41,7 +41,8 @@ ensure that."
   :type '(repeat string)
   :group 'org-roam)
 
-;;;; functions
+;;; md-roam functions
+;;;; For extract titles
 (defun md-roam--extract-title-from-current-buffer ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
@@ -77,6 +78,7 @@ of the title. 's-trim-left is used to remove it."
 
 (advice-add 'org-roam--extract-titles :filter-return #'md-roam--extract-titles)
 
+;;;; Extract links (wiki and cite)
 (defun md-roam--extract-wiki-links (file-path)
   "Extract links in the form of [[link]].
 FILE-PATH is mandatory as org-roam--extract-links identifies it."
@@ -152,6 +154,7 @@ It should be used in 'advice-add'."
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
+;;;; Modify org-roam-insert
 (defun md-roam--format-link (target &optional description)
   "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
 Add advice to 'org-roam--format-link' within 'org-roam-inert'.
