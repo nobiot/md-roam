@@ -1,3 +1,0 @@
-#+TITLE: Nested Foo
-
-This file has no links.
