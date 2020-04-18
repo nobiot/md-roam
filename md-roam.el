@@ -172,13 +172,13 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
                                       (list :content content :point begin-of-block))))))))  ; properties
     md-cite-links))
 
-(defun md-roam--extract-links (orginal-extract-links &optional file-path)
+(defun md-roam--extract-links (original-extract-links &optional file-path)
   "Add markdown links (wiki and cite) for FILE-PATH to org-roam the equivalent.
-ORGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
+ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
 It should be used in 'advice-add'."
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name))))
-         (links (apply orginal-extract-links '(file-path)))
+         (links (apply original-extract-links file-path nil))
          (md-links (md-roam--extract-wiki-links file-path))
          (md-cite-links (md-roam--extract-cite-links file-path)))
 
