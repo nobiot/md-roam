@@ -1,20 +1,28 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 ## Synopsis
 
-`md-roam` is a clone of [org-roam by Jethro
+`md-roam` is an official plug-in [`org-roam` by Jethro
 Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
 
 It's adapted to support markdown files in parallel with org files.
 
-It currently supports the following markdown related features (2020-04-10):
+*Breaking change -- due to architectural change*: `md-roam` is no longer a clone; it's a "plug-in". You need to have `org-roam`, and then add `md-roam`.
 
-- `.md` extension only.(hard coded)
+My own initial testing is positive. 
+I'll document the changes soon. The following should serve as preliminary documentation of the features currently in place. 
+
+---
+
+It currently supports the following markdown related features (2020-04-18 -- to be detailed later):
+
+- ~~`.md` extension only.(hard coded)~~ `org-roam` has introduced a variable to define additional file extensions to be used. You can specify a markdown extension such as `.md` or `.markdown`. In addition, you need to specify a `md-roam` specific variable (to be document in more detail) for `[[wiki link]]` default extension. 
 - `title: Note's Title` in the YAML frontmatter delineated by `---` (no support
   for TOML or MMD syntax)
 - Backlink for the `[[wiki-link]]` syntax (still very experimental)
-- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks
+- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. You need to define an extension that `md-roam uses`
+- pandoc style citation, such as `[@bibkey]`, `@bibkey` `-@bibkey`
   
-I am trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed, `md-roam` is usually lagging a bit behind. As of 2020-04-12, it is based on upstream commit 772505b (the latest in the master branch as at the time of merging the upstream).
+I am trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed, `md-roam` is usually lagging a bit behind. As of 2020-04-18, it is based on upstream commit e33c144; i.e. not the latest.
 
 This commit includes support for citation backlinks with using `org-ref`. I don't use `org-ref`; test is not done if `md-roam` can support `org-ref`. 
 

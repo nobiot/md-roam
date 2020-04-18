@@ -2,6 +2,8 @@
 
 ## 1.0.4-md (tbd)
 
+* BREAKING CHANGE -- md-roam is now a "plug-in" to the `org-roam`; no longer a clone. -- detail to be documented. 
+
 * Merged with upstream commit 772505b, which includes `org-ref` support
 
 ## 1.0.3-md (2020-04-10)
