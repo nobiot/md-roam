@@ -122,7 +122,7 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-        (let* ((to-file (concat (match-string-no-properties 1) md-roam-file-extension-single))
+        (let* ((to-file (concat (match-string-no-properties 1) "." md-roam-file-extension-single))
                (end (match-end 1))
                (begin-of-block)
                (end-of-block)
@@ -185,7 +185,7 @@ It should be used in 'advice-add'."
     (when md-links
       (setq links (append md-links links)))
     (when md-cite-links
-      (setq links (append md-cite-links)))
+      (setq links (append md-cite-links links)))
     links))
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
