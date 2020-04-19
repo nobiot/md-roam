@@ -1,7 +1,7 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 ## Synopsis
 
-`md-roam` is an official plug-in [`org-roam` by Jethro
+`md-roam` is an unofficial plug-in [`org-roam` by Jethro
 Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
 
 It's adapted to support markdown files in parallel with org files.
@@ -35,32 +35,33 @@ The standard `org-roam` features are [should be] still supported. This means you
 
 ## Installation
 
-I use [Doom
-Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
-With it, you can use GitLab, GitHub (mirrored), or clone this repo to your
-local, and add respective one of these below. Don't forget to `doom sync`.
+I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
+With it, you can use GitLab, GitHub (mirrored), or clone this repo to your local, and add respective one of these below. Don't forget to `doom sync`.
 
 ``` emacs-lisp
-(package! org-roam-mode
+(package! md-roam
   :recipe (:gitlab
   :repo "nobiot/md-roam"))
 ```
 
 ``` emacs-lisp
-(package! org-roam-mode
+(package! md-roam
   :recipe (:github
   :repo "nobiot/md-roam"))
 ```
 
 
 ``` emacs-lisp
-(package! org-roam-mode
+(package! md-roam
   :recipe (:local-repo "path/to/your-local-repos/md-roam"))
 ```
 
-For more detailed installation and configuration instructions (including for
-Doom and Spacemacs users), please see [the `org-roam`
+## Org-Roam
+
+`md-roam` is an unofficial plug-in for `org-roam`. For more information on `org-roam`, refer to [the `org-roam`
 documentation](https://org-roam.readthedocs.io/en/master/installation/). 
+
+It has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
 
 ## Knowledge Bases using Org-roam
 
