@@ -206,12 +206,16 @@ follow this behaviour."
 
   (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
     (if (string= ext md-roam-file-extension-single)
-        (let* ((here (-> (or (buffer-base-buffer)
-                             (current-buffer))
-                         (buffer-file-name)
-                         (file-truename)
-                         (file-name-directory))))
-          (concat "[[" (file-name-sans-extension (file-relative-name target here)) "]]"
+        (let* ((here (ignore-errors
+                       (-> (or (buffer-base-buffer)
+                               (current-buffer))
+                           (buffer-file-name)
+                           (file-truename)
+                           (file-name-directory)))))
+          (concat "[[" (file-name-sans-extension (if here
+                                                     (file-relative-name target here)
+                                                   target))
+                  "]]"
                   " " description))
       nil)))
 
