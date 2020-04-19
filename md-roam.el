@@ -25,6 +25,7 @@
 (require 'f)
 
 (declare-function org-roam--file-name-extension "org-roam")
+(declare-function org-roam-db-build-cache "org-roam-db")
 
 ;;; Md-roam addtional variables
 
@@ -64,6 +65,8 @@
 (defvar md-roam-regex-in-text-citation-2
   "\\(?:[^[:alnum:]]\\|^\\)\\(-?@\\)\\([-a-zA-Z0-9_+:]+\\)"
   "Regular expression for stand-alone citation with no anchor.")
+
+(defvar md-roam-verbose t)
 
 ;;; Md-roam customizing
 
@@ -213,6 +216,17 @@ follow this behaviour."
       nil)))
 
 (advice-add 'org-roam--format-link :before-until #'md-roam--format-link)
+
+;;;; Add advice to org-roam-db-build-cache
+
+(defun md-roam-add-message-to-db-build-cache ()
+  "Add a message to the return message from 'org-roam-db-build-cache.
+This is to simply indicate that md-roam is active."
+  (when md-roam-verbose
+    (message "md-roam is active")))
+
+(advice-add 'org-roam-db-build-cache :before #'md-roam-add-message-to-db-build-cache)
+
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
