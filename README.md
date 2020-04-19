@@ -3,7 +3,7 @@
 ## Synopsis
 
 Use `org-roam` with markdown files by adding `md-roam` to it.
-`md-roam` extends the feature and functions provided by [`org-roam`](https://github.com/jethrokuan/org-roam) to support markdown files in addition to org files. 
+`md-roam` extends the features and functions provided by [`org-roam`](https://github.com/jethrokuan/org-roam) to support markdown files in addition to org files. 
 
 
 ![Animation showing org-roam-insert to insert a wiki link](./images/markdown-in-org-roam-insert.gif "Animation showing org-roam-insert to insert a wiki link")
