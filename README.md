@@ -22,7 +22,7 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 
    You can define the markdown extension of your choice such as `.md` or `.markdown`.
    
-- `title: Note's Title` in the YAML frontrunner's delineated by `---`
+- `title: Note's Title` in the YAML frontrunner delineated by `---`
 
   Currently no support for TOML or MMD syntax
   
