@@ -22,7 +22,9 @@
 
 (require 'dash)
 (require 's)
-(require 'org-roam)
+(require 'f)
+
+(declare-function org-roam--file-name-extension "org-roam")
 
 ;;; Md-roam addtional variables
 
