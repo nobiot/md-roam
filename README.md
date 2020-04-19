@@ -1,66 +1,117 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
+
 ## Synopsis
 
-`md-roam` is an official plug-in [`org-roam` by Jethro
-Kuan](https://github.com/jethrokuan/org-roam) and other contributors. 
+Use `org-roam` with markdown files by adding `md-roam` to it.
+`md-roam` extends the feature and functions provided by [`org-roam`](https://github.com/jethrokuan/org-roam) to support markdown files in addition to org files. 
 
-It's adapted to support markdown files in parallel with org files.
 
-*Breaking change -- due to architectural change*: `md-roam` is no longer a clone; it's a "plug-in". You need to have `org-roam`, and then add `md-roam`.
+![Animation showing org-roam-insert to insert a wiki link](./images/markdown-in-org-roam-insert.gif "Animation showing org-roam-insert to insert a wiki link")
 
-My own initial testing is positive. 
-I'll document the changes soon. The following should serve as preliminary documentation of the features currently in place. 
+![Animation showing following wikilink to see the backlink added](./images/markdown-in-org-roam-backlink.gif "Animation showing following wikilink to see the backlink added")
+
+![Animation showing adding citation using pandoc syntax](./images/markdown-in-org-roam_cite.gif "Animation showing adding citation using pandoc syntax")
+
+![Animation showing adding cite backlink in the literature note](./images/markdown-in-org-roam_cite2.gif "Animation showing adding cite backlink in the literature note")
 
 ---
 
-It currently supports the following markdown related features (2020-04-18 -- to be detailed later):
+`md-roam` currently supports the following features (2020-04-19):
 
-- ~~`.md` extension only.(hard coded)~~ `org-roam` has introduced a variable to define additional file extensions to be used. You can specify a markdown extension such as `.md` or `.markdown`. In addition, you need to specify a `md-roam` specific variable (to be document in more detail) for `[[wiki link]]` default extension. 
-- `title: Note's Title` in the YAML frontmatter delineated by `---` (no support
-  for TOML or MMD syntax)
-- Backlink for the `[[wiki-link]]` syntax (still very experimental)
-- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. You need to define an extension that `md-roam uses`
-- pandoc style citation, such as `[@bibkey]`, `@bibkey` `-@bibkey`
+- Customize the markdown extension you use.
+
+   You can define the markdown extension of your choice such as `.md` or `.markdown`.
+   
+- `title: Note's Title` in the YAML frontrunner's delineated by `---`
+
+  Currently no support for TOML or MMD syntax
   
-I am trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed, `md-roam` is usually lagging a bit behind. As of 2020-04-18, it is based on upstream commit e33c144; i.e. not the latest.
+- Backlink for the `[[wiki-link]]` syntax
 
-This commit includes support for citation backlinks with using `org-ref`. I don't use `org-ref`; test is not done if `md-roam` can support `org-ref`. 
+- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. 
 
-I'll think of another way to support citation backlinks, something like `[@bibkey]` like `[@Ota2020]`. I need to see where my skill boundaries are, and if this makes sense.
+- pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
+  
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-04-19, it is based on the upstream commit `de4f547`  [link](https://github.com/jethrokuan/org-roam/commit/de4f5477d8c442d5572c20775847420f3719bf5c) (latest as at the time of writing this).
 
-The standard `org-roam` features are [should be] still supported. This means you can use the standard `org-roam` related `org` syntax in your `.md` files, such as:
+The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam related `org` syntax in your `.md` files, such as:
+
 - `#+TILTLE: org title`
+
 - `[[file:linked-file.org][Note's Title]]`
+
 - (hopefully `org-ref`) -- not tested as I don't use it
 
 ## Installation
 
-I use [Doom
-Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
-With it, you can use GitLab, GitHub (mirrored), or clone this repo to your
-local, and add respective one of these below. Don't forget to `doom sync`.
+`md-roam` is a "plug-in" for `org-roam`. You need to get `org-roam` working first. Add `md-roam`, and load or require it before `org-roam`. `md-roam` does not change any part of source code of `org-roam`.
 
-``` emacs-lisp
-(package! org-roam-mode
+I don't intend it to be available in MELPA at the moment; I have never done it.
+
+You can download `md-roam.el` file, or clone this repository. Place the file in somewhere `load-path` recognizes, and configure like the following.
+
+
+```
+(add-to-list 'load-path "~/path/to/md-roam-directory/") ;Modify with your own path
+
+(require 'md-roam) ;this must be before org-roam
+
+(setq md-roam-file-extension-single "md") 
+  ;set your markdown extension
+  ;you can omit this if md, which is the default.
+```
+
+You also need to add your markdown extension to `org-roam-file-extensions` list -- this is for `org-roam` to know that you use the extension with `org-roam`.
+
+```
+(setq org-roam-file-extensions '("org" "md"))
+```
+
+
+I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
+With it, you can use GitLab, GitHub (mirrored), or clone this repo to your local, and add respective one of these below. Don't forget to `doom sync`.
+
+```
+;in your package.el
+
+(package! md-roam
   :recipe (:gitlab
   :repo "nobiot/md-roam"))
 ```
 
-``` emacs-lisp
-(package! org-roam-mode
+```
+;in your package.el
+
+(package! md-roam
   :recipe (:github
   :repo "nobiot/md-roam"))
 ```
 
+```
+;in your package.el
 
-``` emacs-lisp
-(package! org-roam-mode
+(package! md-roam
   :recipe (:local-repo "path/to/your-local-repos/md-roam"))
 ```
 
-For more detailed installation and configuration instructions (including for
-Doom and Spacemacs users), please see [the `org-roam`
+Add the following config in your `config.el`
+
+```
+;in your config.el
+
+(use-package! md-roam ; load immediately, before org-roam
+  :config
+  (setq md-roam-file-extension-single "md")) 
+    ;you can omit this if md, which is the default.
+```
+
+
+## Org-Roam
+
+`md-roam` is an unofficial plug-in for `org-roam`. For more information on `org-roam`, refer to [the `org-roam`
 documentation](https://org-roam.readthedocs.io/en/master/installation/). 
+
+It has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
 
 ## Knowledge Bases using Org-roam
 
