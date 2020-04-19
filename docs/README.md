@@ -1,5 +1,9 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 
+# Work-in-progress
+
+This is WIP documentation generated via [docsify](https://docsify.js.org/) as a place holder (copy of README). [More pages](https://docsify.js.org/#/more-pages) will be added (2020-04-19).
+
 ## Synopsis
 
 Use `org-roam` with markdown files by adding `md-roam` to it.
