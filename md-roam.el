@@ -92,7 +92,6 @@ It assumes:
  (1) Current buffer is a markdonw file (but does not check it)
  (2) It has title in the YAML frontmatter on top of the file
  (3) The format is 'title: The Document Title Value'
- (4) The title value is escaped by the double quotations
 
 The extraction is done via regex expresion in the variable defined in
 'md-roam-title-regex.
