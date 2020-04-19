@@ -34,7 +34,7 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
   
 I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-04-19, it is based on the upstream commit `de4f547`  [link](https://github.com/jethrokuan/org-roam/commit/de4f5477d8c442d5572c20775847420f3719bf5c) (latest as at the time of writing this).
 
-The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam related `org` syntax in your `.md` files, such as:
+The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam` related `org` syntax in your `.md` files, such as:
 
 - `#+TILTLE: org title`
 
