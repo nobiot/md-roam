@@ -2,20 +2,24 @@
 ;;
 ;; Copyright (C) 2020 Noboru Ota
 ;;
-;; Author: Noboru Ota <http://github/I040050>
+;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
 ;; Modified: April 15, 2020
 ;; Version: 0.0.1
 ;; Keywords:
-;; Homepage: https://github.com/I040050/md-roam
+;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
 ;;; Commentary:
+;;  Use org-roam with markdown files by adding md-roam to it. md-roam extends
+;;  the features and functions provided by org-roam to support markdown files
+;;  in addition to org files.
 ;;
-;;  description
+;;  Refer to README in the GitHub / GitLab repo for instruction, configuraiton,
+;;  and features supported.
 ;;
 ;;; Code:
 ;;;
