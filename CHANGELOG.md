@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.0-md (2020-04-19)
+TODO: If I follow [Semantic Versioning](https://semver.org/) -- I should -- this would have to be v2.0.0 [note 2020-04-26].
 
 ### BREAKING CHANGES
 `md-roam` is now a "plug-in" to `org-roam`; no longer a clone. Refer to README for installation and configuration. Features and functions do not change.
