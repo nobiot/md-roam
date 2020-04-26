@@ -13,7 +13,7 @@
 
 ### Notes
 
-* (2020-04-19) Tested and used (by the author) with upstream commit de4f547
+* (2020-04-26) Tested and used (by the author) with upstream version 1.1 at commit `963692f` [link](https://github.com/jethrokuan/org-roam/commit/963692f353090359b0513cc75abe92e7e7546bfc)(latest as at the time of this writing)
 
 
 ## 1.0.3-md (2020-04-10)
