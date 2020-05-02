@@ -17,10 +17,6 @@ TODO: If I follow [Semantic Versioning](https://semver.org/) -- I should -- this
 * Enable customization of the markdown extension you use.
 * Enable pandoc style citation for cite links, such as [@bibkey], @bibkey -@bibkey
 
-### Notes
-
-* (2020-04-26) Tested and used (by the author) with upstream version 1.1 at commit `963692f` [link](https://github.com/jethrokuan/org-roam/commit/963692f353090359b0513cc75abe92e7e7546bfc)(latest as at the time of this writing)
-
 ## 1.0.3-md (2020-04-10)
 
 ### Features
