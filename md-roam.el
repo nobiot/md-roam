@@ -113,9 +113,11 @@ of the title. 's-trim-left is used to remove it."
       (s-trim-left (match-string-no-properties 2)))))
 
 (defun md-roam--extract-titles (alias-list)
-  "Add markdown titles to the ALIAS-LIST returned form org-roam--extract-titles."
+  "Ignore ALIAS-LIST from org-roam--extract-titles if md-title is available.
+Add the markdown title to the ALIAS-LIST. If md-title is not available, return
+ALIAS-LIST as is."
   (let ((md-title (md-roam--extract-title-from-current-buffer)))
-    (if md-title (cons md-title alias-list)
+    (if md-title (setq alias-list (list md-title))
       alias-list)))
 
 (advice-add 'org-roam--extract-titles :filter-return #'md-roam--extract-titles)
