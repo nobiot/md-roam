@@ -16,7 +16,9 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 
 ---
 
-`md-roam` currently supports the following features:
+## Features of Org Roam Supported
+
+`md-roam` currently supports the following features for your markdown notes:
 
 - Customize the markdown extension you use.
 
@@ -31,25 +33,32 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 - `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. 
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
-  
-I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-02, I am using it with upstream version 1.1 at commit [`0132546`](https://github.com/jethrokuan/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) (latest as at the time of writing this).
 
-Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I see the following ones potentially relevant for =md-roam=. They might (or might not) interfere with =md-roam=. So far, I haven't tried them on yet. I will try to see if I can allocate some time to do some (light) tests. 
+Most of the standard `org-roam` features are [should be] still supported. This means two things:
 
-If anyone has some spare time, I would appreciate your helping with testing. I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
-
-* TODO check multi cite [#545](https://github.com/jethrokuan/org-roam/pull/545) #3 (`org-ref`; need to verify it is relevant for `md-org`)
-* DONE check org-roam-title-include-subdirs [#427](https://github.com/jethrokuan/org-roam/pull/427) Tested OK #1
-* TODO check (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) #4
-
-
-The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam` related `org` syntax in your `.md` files, such as:
+1. You can mix markdown and org files in your org roam directories. 
+2. You should be able to use `org` syntax in your `.md` files, such as:
 
 - `#+TILTLE: org title`
 
 - `[[file:linked-file.org][Note's Title]]`
 
 - (hopefully `org-ref`) -- not tested as I don't use it
+
+Known limitations are listed in the next section below.
+
+## Features of Org Roam NOT Supported (Limitations)
+
+- Does not support aliases for a file (#+ROAM_ALIAS) ([#5](https://github.com/nobiot/md-roam/pull/5))
+- Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))
+
+## Upstream Org Roam Commits Tested
+  
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-02, I am using it with upstream version 1.1 at commit [`0132546`](https://github.com/jethrokuan/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) (latest as at the time of writing this).
+
+Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I see the following ones potentially relevant for =md-roam=. They might (or might not) interfere with =md-roam=. So far, I haven't tried them on yet. I will try to see if I can allocate some time to do some (light) tests. 
+
+If anyone has some spare time, I would appreciate your helping with testing. I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
 ## Installation
 
