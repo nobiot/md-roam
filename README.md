@@ -38,9 +38,9 @@ Please note, however, that Jethro and contributors have added good many new feat
 
 If anyone has some spare time, I would appreciate your helping with testing. I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
-* TODO check multi cite [#545](https://github.com/jethrokuan/org-roam/pull/545)
-* TODO check org-roam-title-include-subdirs [#427](https://github.com/jethrokuan/org-roam/pull/427)
-* TODO check (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538)
+* TODO check multi cite [#545](https://github.com/jethrokuan/org-roam/pull/545) #3 (`org-ref`; need to verify it is relevant for `md-org`)
+* DONE check org-roam-title-include-subdirs [#427](https://github.com/jethrokuan/org-roam/pull/427) Tested OK #1
+* TODO check (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) #4
 
 
 The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam` related `org` syntax in your `.md` files, such as:
