@@ -56,9 +56,9 @@ Known limitations are listed in the next section below.
   
 I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-02, I am using it with upstream version 1.1 at commit [`0132546`](https://github.com/jethrokuan/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) (latest as at the time of writing this).
 
-Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I see the following ones potentially relevant for =md-roam=. They might (or might not) interfere with =md-roam=. So far, I haven't tried them on yet. I will try to see if I can allocate some time to do some (light) tests. 
+Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I have created issues in GitHub for testing the features I see potentially relevant for `md-roam`. 
 
-If anyone has some spare time, I would appreciate your helping with testing. I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
+If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
 ## Installation
 
