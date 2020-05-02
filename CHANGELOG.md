@@ -4,6 +4,7 @@
 
 ### Limitations
 * Does not support aliases for a file (#+ROAM_ALIAS) ([PR#5](https://github.com/nobiot/md-roam/pull/5))
+* Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))
 
 ## 1.1.0-md (2020-04-19)
 TODO: If I follow [Semantic Versioning](https://semver.org/) -- I should -- this would have to be v2.0.0 [note 2020-04-26].
