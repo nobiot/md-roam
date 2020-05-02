@@ -16,7 +16,7 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 
 ---
 
-`md-roam` currently supports the following features (2020-04-19):
+`md-roam` currently supports the following features:
 
 - Customize the markdown extension you use.
 
@@ -32,7 +32,16 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
   
-I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-04-26, I have tested and am using it with upstream version 1.1 at commit `963692f` [link](https://github.com/jethrokuan/org-roam/commit/de4f5477d8c442d5572c20775847420f3719bf5c) (latest as at the time of writing this).
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-02, I am using it with upstream version 1.1 at commit [`0132546`](https://github.com/jethrokuan/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) (latest as at the time of writing this).
+
+Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I see the following ones potentially relevant for =md-roam=. They might (or might not) interfere with =md-roam=. So far, I haven't tried them on yet. I will try to see if I can allocate some time to do some (light) tests. 
+
+If anyone has some spare time, I would appreciate your helping with testing. I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
+
+* TODO check multi cite [#545](https://github.com/jethrokuan/org-roam/pull/545)
+* TODO check org-roam-title-include-subdirs [#427](https://github.com/jethrokuan/org-roam/pull/427)
+* TODO check (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538)
+
 
 The standard `org-roam` features are [should be] still supported. This means you can use `org` file together with `md` files, or use the standard `org-roam` related `org` syntax in your `.md` files, such as:
 
