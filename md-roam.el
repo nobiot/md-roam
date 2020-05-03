@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: May 2, 2020
-;; Version: 1.2.0
+;; Modified: May 3, 2020
+;; Version: 1.1.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
@@ -92,7 +92,7 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 (defun md-roam--extract-title-from-current-buffer ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
-This function looks fo the YAML frontmatter deliniator '---' begining of
+This function looks for the YAML frontmatter deliniator '---' begining of
 the buffer. No space is allowed before or after the deliniator.
 
 It assumes:
@@ -126,7 +126,6 @@ of the title. 's-trim-left is used to remove it."
         (cons title alias-list)
       alias-list)))
 
-
 (defun md-roam--extract-and-format-titles (original-extract-and-format-titles &optional file-path)
   "Extract the titles from the current buffer and format them.
 It is meant to be used with `advice-add' for
@@ -151,7 +150,7 @@ is used."
 
 (defun md-roam--extract-wiki-links (file-path)
   "Extract links in the form of [[link]].
-FILE-PATH is mandatory as org-roam--extract-links identifies it."
+FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
   (let (md-links)
     (save-excursion
       (goto-char (point-min))
@@ -180,7 +179,7 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
 
 (defun md-roam--extract-cite-links (file-path)
   "Extract cites defined by @bibkey.
-FILE-PATH is mandatory as org-roam--extract-links identifies it."
+FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
   (let (md-cite-links)
     (save-excursion
       (goto-char (point-min))
@@ -207,9 +206,9 @@ FILE-PATH is mandatory as org-roam--extract-links identifies it."
     md-cite-links))
 
 (defun md-roam--extract-links (original-extract-links &optional file-path)
-  "Add markdown links (wiki and cite) for FILE-PATH to org-roam the equivalent.
+  "Add markdown links (wiki and cite) for FILE-PATH to the org-roam equivalent.
 ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
-It should be used in 'advice-add'."
+It should be used with 'advice-add'."
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name))))
          (links (apply original-extract-links file-path nil))
@@ -230,7 +229,7 @@ It should be used in 'advice-add'."
 (defun md-roam--format-link (target &optional description)
   "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
 Add advice to 'org-roam--format-link' within 'org-roam-inert'.
-Customize 'org-roam--file-name-extension' to define the extesion (e.g. md) that
+Customize `org-roam--file-name-extension' to define the extesion (e.g. md) that
 follow this behaviour."
 
   (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
@@ -253,7 +252,7 @@ follow this behaviour."
 ;;;; Add advice to org-roam-db-build-cache
 
 (defun md-roam-add-message-to-db-build-cache ()
-  "Add a message to the return message from 'org-roam-db-build-cache.
+  "Add a message to the return message from `org-roam-db-build-cache'.
 This is to simply indicate that md-roam is active."
   (when md-roam-verbose
     (message "md-roam is active")))
