@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: April 15, 2020
-;; Version: 0.0.1
+;; Modified: May 2, 2020
+;; Version: 1.2.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
@@ -29,6 +29,8 @@
 (require 'f)
 
 (declare-function org-roam--file-name-extension "org-roam")
+(declare-function org-roam--extract-global-props "org-roam")
+(declare-function org-roam--aliases-str-to-list "org-roam")
 (declare-function org-roam-db-build-cache "org-roam-db")
 
 ;;; Md-roam addtional variables
@@ -112,15 +114,29 @@ of the title. 's-trim-left is used to remove it."
     (when (string-match md-roam-title-regex (buffer-string))
       (s-trim-left (match-string-no-properties 2)))))
 
-(defun md-roam--extract-titles (alias-list)
-  "Ignore ALIAS-LIST from org-roam--extract-titles if md-title is available.
-Add the markdown title to the ALIAS-LIST. If md-title is not available, return
-ALIAS-LIST as is."
-  (let ((md-title (md-roam--extract-title-from-current-buffer)))
-    (if md-title (setq alias-list (list md-title))
+(defun md-roam--extract-title-and-aliases()
+  "Extract the titles from current buffer."
+  (let* ((props (org-roam--extract-global-props '("ROAM_ALIAS")))
+         (aliases (cdr (assoc "ROAM_ALIAS" props)))
+         (title (md-roam--extract-title-from-current-buffer))
+         (alias-list (org-roam--aliases-str-to-list aliases)))
+    (if title
+        (cons title alias-list)
       alias-list)))
 
-(advice-add 'org-roam--extract-titles :filter-return #'md-roam--extract-titles)
+(defun md-roam--extract-titles (original-extract-titles)
+  "Use ORIGINAL-EXTRACT-TITLES if md-title is unavailable.
+Add the markdown title to the ALIAS-LIST. If md-title is not available, return
+ALIAS-LIST as is."
+
+  (let* ((ext (org-roam--file-name-extension (buffer-file-name)))
+         (alias-list nil))
+    (cond ((string= ext md-roam-file-extension-single)
+           (setq alias-list (md-roam--extract-title-and-aliases)))
+          (t (setq alias-list (apply original-extract-titles nil nil))))
+    alias-list))
+
+(advice-add 'org-roam--extract-titles :around #'md-roam--extract-titles)
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links
