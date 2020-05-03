@@ -116,9 +116,10 @@ of the title. 's-trim-left is used to remove it."
 
 (defun md-roam--extract-title-and-aliases()
   "Extract the titles from current buffer."
-  (let* ((props (org-roam--extract-global-props '("ROAM_ALIAS")))
+  (let* ((props (org-roam--extract-global-props '("TITLE" "ROAM_ALIAS")))
          (aliases (cdr (assoc "ROAM_ALIAS" props)))
-         (title (md-roam--extract-title-from-current-buffer))
+         (title (or (md-roam--extract-title-from-current-buffer)
+                    (cdr (assoc "TITLE" props))))
          (alias-list (org-roam--aliases-str-to-list aliases)))
     (if title
         (cons title alias-list)
@@ -129,11 +130,13 @@ of the title. 's-trim-left is used to remove it."
 Add the markdown title to the ALIAS-LIST. If md-title is not available, return
 ALIAS-LIST as is."
 
-  (let* ((ext (org-roam--file-name-extension (buffer-file-name)))
+  (let* ((ext (if (buffer-file-name)
+                  (org-roam--file-name-extension (buffer-file-name))
+                md-roam-file-extension-single)) ;if in temp-buffer, assume md for now...
          (alias-list nil))
     (cond ((string= ext md-roam-file-extension-single)
            (setq alias-list (md-roam--extract-title-and-aliases)))
-          (t (setq alias-list (funcall 'original-extract-titles))))
+          (t (setq alias-list (apply original-extract-titles))))
     alias-list))
 
 (advice-add 'org-roam--extract-titles :around #'md-roam--extract-titles)
