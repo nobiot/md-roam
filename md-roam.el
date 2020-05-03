@@ -31,6 +31,7 @@
 (declare-function org-roam--file-name-extension "org-roam")
 (declare-function org-roam--extract-global-props "org-roam")
 (declare-function org-roam--aliases-str-to-list "org-roam")
+(declare-function org-roam--format-title "org-roam")
 (declare-function org-roam-db-build-cache "org-roam-db")
 
 ;;; Md-roam addtional variables
@@ -86,7 +87,7 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 ;;; Md-roam functions
 
 ;;;  Extracting title from markdown files (YAML frontmatter)
-;;;  Add advice to org-roam--extract-titles
+;;;  Add advice to org-roam--extract-and-format-titles
 
 (defun md-roam--extract-title-from-current-buffer ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
@@ -114,7 +115,7 @@ of the title. 's-trim-left is used to remove it."
     (when (string-match md-roam-title-regex (buffer-string))
       (s-trim-left (match-string-no-properties 2)))))
 
-(defun md-roam--extract-title-and-aliases()
+(defun md-roam--extract-titles ()
   "Extract the titles from current buffer."
   (let* ((props (org-roam--extract-global-props '("TITLE" "ROAM_ALIAS")))
          (aliases (cdr (assoc "ROAM_ALIAS" props)))
@@ -125,21 +126,25 @@ of the title. 's-trim-left is used to remove it."
         (cons title alias-list)
       alias-list)))
 
-(defun md-roam--extract-titles (original-extract-titles)
-  "Use ORIGINAL-EXTRACT-TITLES if md-title is unavailable.
-Add the markdown title to the ALIAS-LIST. If md-title is not available, return
-ALIAS-LIST as is."
 
-  (let* ((ext (if (buffer-file-name)
-                  (org-roam--file-name-extension (buffer-file-name))
-                md-roam-file-extension-single)) ;if in temp-buffer, assume md for now...
-         (alias-list nil))
+(defun md-roam--extract-and-format-titles (original-extract-and-format-titles &optional file-path)
+  "Extract the titles from the current buffer and format them.
+It is meant to be used with `advice-add' for
+`org-roam--extract-and-format-titles' as ORIGINAL-EXTRACT-AND-FORMAT-TITLES.
+If FILE-PATH is not provided, the file associated with the current buffer
+is used."
+
+  (let* ((file-path (or file-path
+                        (file-truename (buffer-file-name))))
+         (ext (org-roam--file-name-extension file-path)))
+
     (cond ((string= ext md-roam-file-extension-single)
-           (setq alias-list (md-roam--extract-title-and-aliases)))
-          (t (setq alias-list (apply original-extract-titles))))
-    alias-list))
+           (mapcar (lambda (title)
+                     (org-roam--format-title title file-path))
+                   (md-roam--extract-titles)))
+          (t (apply original-extract-and-format-titles file-path nil)))))
 
-(advice-add 'org-roam--extract-titles :around #'md-roam--extract-titles)
+(advice-add 'org-roam--extract-and-format-titles :around #'md-roam--extract-and-format-titles)
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links
