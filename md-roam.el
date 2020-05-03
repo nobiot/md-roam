@@ -133,7 +133,7 @@ ALIAS-LIST as is."
          (alias-list nil))
     (cond ((string= ext md-roam-file-extension-single)
            (setq alias-list (md-roam--extract-title-and-aliases)))
-          (t (setq alias-list (apply original-extract-titles nil nil))))
+          (t (setq alias-list (funcall 'original-extract-titles))))
     alias-list))
 
 (advice-add 'org-roam--extract-titles :around #'md-roam--extract-titles)
