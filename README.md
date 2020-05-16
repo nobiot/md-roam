@@ -16,6 +16,9 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 
 ---
 
+## Change Log
+Upstream `org-roam` is going through many changes. To catch up, `md-roam` is also changing heavily. I suggest to refer to Changelog maintained [here](CHANGELOG.md) for some breaking changes. Nothing should break your notes as `org-roam` is not designed to alter them, but it is a good practice to keep a back up of your notes, and the org-roam database file (usually named `org-roam.db` stored in your `org-roam-directory`).
+
 ## Features of Org Roam Supported
 
 `md-roam` currently supports the following features for your markdown notes:
@@ -45,6 +48,15 @@ Most of the standard `org-roam` features are [should be] still supported. This m
 
 - (hopefully `org-ref`) -- not tested as I don't use it
 
+Although markdown files do not need `org-ref` it is required if you would like to use cite backlinks. 
+
+One notable difference may be that the cite file (the literature source) uses `#+ROAM_KEY` without the `cite:`. For example, in your literature note, you need do the following:
+
+```
+title: How to Take Smart Notes: One Simple Technique to Boost Writing, Learning and Thinking – for Students, Academics and Nonfiction Book Writers
+#+ROAM_KEY: Ahrens2017
+```
+
 Known limitations are listed in the next section below.
 
 ## Features of Org Roam NOT Supported (Limitations)
@@ -54,11 +66,15 @@ Known limitations are listed in the next section below.
 
 ## Upstream Org Roam Commits Tested
   
-I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-02, I am using it with upstream version 1.1 at commit [`0132546`](https://github.com/jethrokuan/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) (latest as at the time of writing this).
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-16, I am using it with upstream version 1.1.0 at commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) (latest as at the time of writing this).
 
 Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I have created issues in GitHub for testing the features I see potentially relevant for `md-roam`. 
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
+
+## Prerequisite
+
+For cite backlinks to work, you need `org-ref` installed. There is no need to configure it if you don't use it. `org-roam` relies on it for one function, and checks if the package exist with using `require `org-ref`. `org-roam` and `md-roam` still work without it if you do not use cite backlinks.
 
 ## Installation
 
@@ -123,7 +139,6 @@ Add the following config in your `config.el`
     ;you can omit this if md, which is the default.
 ```
 
-
 ## Org-Roam
 
 `md-roam` is an unofficial plug-in for `org-roam`. For more information on `org-roam`, refer to [the `org-roam`
@@ -135,10 +150,6 @@ It has installation and configuration instructions (including installation guide
 
 - [Jethro Kuan](https://braindump.jethro.dev/)
   ([Source](https://github.com/jethrokuan/braindump/tree/master/org))
-
-## Changelog
-
-A changelog is being maintained [here](CHANGELOG.md)
 
 ## License
 

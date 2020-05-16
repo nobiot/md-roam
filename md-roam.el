@@ -196,6 +196,7 @@ It should be used with 'advice-add'."
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
+
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
 
