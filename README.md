@@ -74,7 +74,7 @@ If anyone has some spare time, I would appreciate your helping with testing (and
 
 ## Prerequisite
 
-For cite backlinks to work, you need `org-ref` installed. There is no need to configure it if you don't use it. `org-roam` relies on it for one function, and checks if the package exist with using `require `org-ref`. `org-roam` and `md-roam` still work without it if you do not use cite backlinks.
+For cite backlinks to work, you need `org-ref` installed. There is no need to configure it if you don't use it. `org-roam` relies on it for one function, and checks if the package exist with using `require 'org-ref`. `org-roam` and `md-roam` still work without it if you do not use cite backlinks.
 
 ## Installation
 
@@ -93,6 +93,8 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 (setq md-roam-file-extension-single "md") 
   ;set your markdown extension
   ;you can omit this if md, which is the default.
+(setq org-roam-title-sources '((mdtitle title headline) alias)
+  ;you need this nas of commit `095c771`.
 ```
 
 You also need to add your markdown extension to `org-roam-file-extensions` list -- this is for `org-roam` to know that you use the extension with `org-roam`.
