@@ -27,15 +27,10 @@
 (require 'dash)
 (require 's)
 (require 'f)
-
-(declare-function org-roam--file-name-extension "org-roam")
-(declare-function org-roam--extract-global-props "org-roam")
-(declare-function org-roam--aliases-str-to-list "org-roam")
-(declare-function org-roam--format-title "org-roam")
-(declare-function org-roam-db-build-cache "org-roam-db")
+(declare-function org-roam--file-name-extension 'org-roam)
 
 ;;; Md-roam addtional variables
-
+;;; 
 ;;; Regexp for title of markdown file in YAML frontmatter
 (defvar md-roam-title-regex
   (concat "\\(^title:[[:blank:]]*\\)"   ; The line needs to begin with 'title:',
@@ -89,7 +84,7 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 ;;;  Extracting title from markdown files (YAML frontmatter)
 ;;;  Add advice to org-roam--extract-and-format-titles
 
-(defun md-roam--extract-title-from-current-buffer ()
+(defun org-roam--extract-titles-mdtitle ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
 This function looks for the YAML frontmatter deliniator '---' begining of
@@ -113,37 +108,15 @@ of the title. 's-trim-left is used to remove it."
       (goto-char (point-min))
       (re-search-forward "^---\n" 5 t nil))
     (when (string-match md-roam-title-regex (buffer-string))
-      (s-trim-left (match-string-no-properties 2)))))
+      (list (s-trim-left (match-string-no-properties 2))))))
 
-(defun md-roam--extract-titles ()
-  "Extract the titles from current buffer."
-  (let* ((props (org-roam--extract-global-props '("TITLE" "ROAM_ALIAS")))
-         (aliases (cdr (assoc "ROAM_ALIAS" props)))
-         (title (or (md-roam--extract-title-from-current-buffer)
-                    (cdr (assoc "TITLE" props))))
-         (alias-list (org-roam--aliases-str-to-list aliases)))
-    (if title
-        (cons title alias-list)
-      alias-list)))
+(defun org-roam--extract-titles-mdalias ()
+  "WIP: Return the aliases from the current buffer."
+  )
 
-(defun md-roam--extract-and-format-titles (original-extract-and-format-titles &optional file-path)
-  "Extract the titles from the current buffer and format them.
-It is meant to be used with `advice-add' for
-`org-roam--extract-and-format-titles' as ORIGINAL-EXTRACT-AND-FORMAT-TITLES.
-If FILE-PATH is not provided, the file associated with the current buffer
-is used."
-
-  (let* ((file-path (or file-path
-                        (file-truename (buffer-file-name))))
-         (ext (org-roam--file-name-extension file-path)))
-
-    (cond ((string= ext md-roam-file-extension-single)
-           (mapcar (lambda (title)
-                     (org-roam--format-title title file-path))
-                   (md-roam--extract-titles)))
-          (t (apply original-extract-and-format-titles file-path nil)))))
-
-(advice-add 'org-roam--extract-and-format-titles :around #'md-roam--extract-and-format-titles)
+(defun org-roam--extract-titles-mdheadline ()
+  "WIP: Return the first headline of the current buffer."
+  )
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links
@@ -251,9 +224,9 @@ follow this behaviour."
 
 ;;;; Add advice to org-roam-db-build-cache
 
-(defun md-roam-add-message-to-db-build-cache ()
+(defun md-roam-add-message-to-db-build-cache (&optional force)
   "Add a message to the return message from `org-roam-db-build-cache'.
-This is to simply indicate that md-roam is active."
+This is to simply indicate that md-roam is active. FORCE does not do anythying."
   (when md-roam-verbose
     (message "md-roam is active")))
 
