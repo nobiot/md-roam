@@ -68,7 +68,7 @@ Known limitations are listed in the next section below.
   
 I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-16, I am using it with upstream version 1.1.0 at commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) (latest as at the time of writing this).
 
-Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-04-26). Among them, I have created issues in GitHub for testing the features I see potentially relevant for `md-roam`. 
+Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-05-02). Among them, I have created issues in GitHub for testing the features I see potentially relevant for `md-roam`. 
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
@@ -101,6 +101,11 @@ You also need to add your markdown extension to `org-roam-file-extensions` list 
 (setq org-roam-file-extensions '("org" "md"))
 ```
 
+As of commit `095c771`, `md-roam` uses `org-roam-title-sources` variable to exract the titles of markdown files. This is done via function `org-roam-titles-mdtitle` defined in `md-roam.el`. The name is required by `org-roam`. Set the following variable. The important part is to set `mdtitle`. The sequence determines the priority (left-most is the highest priority).
+
+```
+(setq org-roam-title-sources '((mdtitle title headline) alias)
+```
 
 I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
 With it, you can use GitLab, GitHub (mirrored), or clone this repo to your local, and add respective one of these below. Don't forget to `doom sync`.
