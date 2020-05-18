@@ -107,7 +107,7 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 (setq md-roam-file-extension-single "md") 
   ;set your markdown extension
   ;you can omit this if md, which is the default.
-(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)
+(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)))
   ;you need this as of commit `5f24103`.
 ```
 
@@ -120,7 +120,7 @@ You also need to add your markdown extension to `org-roam-file-extensions` list 
 As of commit `5f24103`, `md-roam` uses `org-roam-title-sources` variable to exract the titles and aliases of markdown files. This is done via function `org-roam-titles-mdtitle` and `org-roam-titles-mdalias` respectively. They are defined in `md-roam.el`. Set the following variable. The important part is to set `mdtitle` and `mdalias`. The sequence determines the priority (left-most is the highest priority).
 
 ```
-(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)
+(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)))
 ```
 
 I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
