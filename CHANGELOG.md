@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.1.2-md (TBD)
+## 1.2.1-md (TBD)
 * Add support aliases of a note with YAML matter property (roam_alias, ROAM_ALIAS, or #+ROAM_ALIAS)
 * Deprecate md-roam-title-regex, in favour of md-roam-regex-title
 
-## 1.1.1-md (2020-05-16)
+## 1.2.0-md (2020-05-16)
 
 ### BREAKING CHANGES
 Upstream commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) compared to the last commit I tested [`0132546`](https://github.com/org-roam/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) introduces updates to database structure. I observe a change of version 2 to 5 in the matter of 15 days. I welcome the active development. 
