@@ -17,7 +17,7 @@ Use `org-roam` with markdown files by adding `md-roam` to it.
 ---
 
 ## Change Log
-Upstream `org-roam` is going through many changes. To catch up, `md-roam` is also changing heavily. I suggest to refer to Changelog maintained [here](CHANGELOG.md) for some breaking changes. Nothing should break your notes as `org-roam` is not designed to alter them, but it is a good practice to keep a back up of your notes, and the org-roam database file (usually named `org-roam.db` stored in your `org-roam-directory`).
+Upstream `org-roam` is going through many changes. To catch up, `md-roam` is also changing heavily. I suggest to refer to Changelog maintained [here](CHANGELOG.md) for some breaking changes. Nothing should break your notes as `org-roam` is not designed to alter them, but it is a good practice to keep a backup of your notes, and the org-roam database file (usually named `org-roam.db` stored in your `org-roam-directory`).
 
 ## Features of Org Roam Supported
 
@@ -30,12 +30,24 @@ Upstream `org-roam` is going through many changes. To catch up, `md-roam` is als
 - `title: Note's Title` in the YAML frontrunner delineated by `---`
 
   Currently no support for TOML or MMD syntax
-  
+
 - Backlink for the `[[wiki-link]]` syntax
 
 - `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. 
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
+
+- Aliases of a note are defined in the YAML front matter with key `roam_alias` (case insensitive, and you can still follow the `org-roam` convention: `#+ROAM_ALIAS`). Aliases are specified following `org-roam` convention, in double quotation marks, separated by a space, as in `roam_alias: "alias 1" alias 2"`. Thus your front matter can look like this.
+
+```
+---
+title: this is the title: subtitle
+date: 2020-05-17
+other_key: value
+roam_alias: "alias 1" "alias 2" "alias 3"
+---
+```
+
 
 Most of the standard `org-roam` features are [should be] still supported. This means two things:
 
@@ -50,25 +62,27 @@ Most of the standard `org-roam` features are [should be] still supported. This m
 
 Although markdown files do not need `org-ref` it is required if you would like to use cite backlinks. 
 
-One notable difference may be that the cite file (the literature source) uses `#+ROAM_KEY` without the `cite:`. For example, in your literature note, you need do the following:
+One notable difference may be that the cite file (the literature source) uses `#+ROAM_KEY` without the `cite:` -- for this key, `md-roam` only supports the `org-roam` convention with `#+`. For example, in your literature note, you need do the following:
 
 ```
 title: How to Take Smart Notes: One Simple Technique to Boost Writing, Learning and Thinking – for Students, Academics and Nonfiction Book Writers
 #+ROAM_KEY: Ahrens2017
 ```
 
+Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in this case, the literature note itself ends up referencing itself, adding a cite-backlink to its own backlink buffer -- not a big problem, but you might find it a bit confusing.
+
+
 Known limitations are listed in the next section below.
 
 ## Features of Org Roam NOT Supported (Limitations)
 
-- Does not support aliases for a file (#+ROAM_ALIAS) ([#5](https://github.com/nobiot/md-roam/pull/5))
 - Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))
 
 ## Upstream Org Roam Commits Tested
   
 I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-16, I am using it with upstream version 1.1.0 at commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) (latest as at the time of writing this).
 
-Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-05-02). Among them, I have created issues in GitHub for testing the features I see potentially relevant for `md-roam`. 
+Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-05-02). I have created issues in GitHub for testing these features I see potentially relevant for `md-roam`. 
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
@@ -93,8 +107,8 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 (setq md-roam-file-extension-single "md") 
   ;set your markdown extension
   ;you can omit this if md, which is the default.
-(setq org-roam-title-sources '((mdtitle title headline) alias)
-  ;you need this nas of commit `095c771`.
+(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)
+  ;you need this as of commit `5f24103`.
 ```
 
 You also need to add your markdown extension to `org-roam-file-extensions` list -- this is for `org-roam` to know that you use the extension with `org-roam`.
@@ -103,10 +117,10 @@ You also need to add your markdown extension to `org-roam-file-extensions` list 
 (setq org-roam-file-extensions '("org" "md"))
 ```
 
-As of commit `095c771`, `md-roam` uses `org-roam-title-sources` variable to exract the titles of markdown files. This is done via function `org-roam-titles-mdtitle` defined in `md-roam.el`. The name is required by `org-roam`. Set the following variable. The important part is to set `mdtitle`. The sequence determines the priority (left-most is the highest priority).
+As of commit `5f24103`, `md-roam` uses `org-roam-title-sources` variable to exract the titles and aliases of markdown files. This is done via function `org-roam-titles-mdtitle` and `org-roam-titles-mdalias` respectively. They are defined in `md-roam.el`. Set the following variable. The important part is to set `mdtitle` and `mdalias`. The sequence determines the priority (left-most is the highest priority).
 
 ```
-(setq org-roam-title-sources '((mdtitle title headline) alias)
+(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)
 ```
 
 I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).

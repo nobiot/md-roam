@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.1.1-md (TBD)
+## 1.1.2-md (TBD)
+* Add support aliases of a note with YAML matter property (roam_alias, ROAM_ALIAS, or #+ROAM_ALIAS)
+* Deprecate md-roam-title-regex, in favour of md-roam-regex-title
+
+## 1.1.1-md (2020-05-16)
 
 ### BREAKING CHANGES
 Upstream commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) compared to the last commit I tested [`0132546`](https://github.com/org-roam/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) introduces updates to database structure. I observe a change of version 2 to 5 in the matter of 15 days. I welcome the active development. 
@@ -12,7 +16,7 @@ Please take your usual caution of backing up your note and database files.
 * Use of upstream `org-roam-title-sources` variable
 
 ### Limitations
-* Does not support aliases for a file (#+ROAM_ALIAS) ([PR#5](https://github.com/nobiot/md-roam/pull/5))
+* ~~Does not support aliases for a file (#+ROAM_ALIAS) ([PR#5](https://github.com/nobiot/md-roam/pull/5))~~
 * Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))
 
 ## 1.1.0-md (2020-04-19)

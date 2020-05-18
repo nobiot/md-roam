@@ -53,6 +53,13 @@
   ;If you change this to "\\(^`'\\{3\\}\\)$"), you shoul dbe able to
   ;support YAML matter ending with "```". I am not testing it, though.
 
+(defvar md-roam-regex-title
+  "\\(^title:[ \t]*\\)\\(.*\\)")
+
+(defvar md-roam-regex-aliases
+  ;; Assumed to be case insensitive
+  "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
+
 ;;;  Regexp for pandoc style citation for link extraction
 ;;;  Copy from pandco-mode to remove dependency
 ;;
@@ -124,7 +131,7 @@ It assumes:
 
     (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match "\\(^title:[ \t]*\\)\\(.*\\)" frontmatter)
+           (string-match md-roam-regex-title frontmatter)
            (list (match-string-no-properties 2 frontmatter))))))
 
 (defun org-roam--extract-titles-mdalias ()
@@ -132,7 +139,7 @@ It assumes:
 Return nil if none."
   (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)" frontmatter)
+           (string-match md-roam-regex-aliases frontmatter)
            (org-roam--str-to-list (match-string-no-properties 2 frontmatter))))))
 
 (defun org-roam--extract-titles-mdheadline ()
