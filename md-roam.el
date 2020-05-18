@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: May 3, 2020
-;; Version: 1.1.0
+;; Modified: May 17, 2020
+;; Version: 1.2.1
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
@@ -24,21 +24,41 @@
 ;;; Code:
 ;;;
 
+(eval-when-compile (require 'subr-x))
 (require 'dash)
 (require 's)
 (require 'f)
 (declare-function org-roam--file-name-extension 'org-roam)
+(declare-function org-roam--str-to-list 'org-roam)
 
 ;;; Md-roam addtional variables
-;;; 
-;;; Regexp for title of markdown file in YAML frontmatter
-(defvar md-roam-title-regex
-  (concat "\\(^title:[[:blank:]]*\\)"   ; The line needs to begin with 'title:',
-                                        ; followed by 0-n spaces or tabs.
-                                        ; YAML might insist on whitespace, but
-                                        ; here we can be more lenient
-          "\\(.+\n\\)" ; Actual title string (1-n characters)
-          ))
+
+;;; Regexp for the beginning and ending of YAML front matter section
+;;; In markdown-mode, beginning and ending are the same: "---".
+;;; Separate regular expressions are defined here because in some
+;;; markdown conventions, the ending is delineated by "```".
+;;; This can be potentially supported setting a custom regexp for
+;;; the ending delineator.
+
+;;;; These regular expressions are modified versino of
+;;;; `markdown-regex-yaml-metadata-border.
+;;;; I am adding "^" to indicate that the a line needs to
+;;;; start with the delineator.
+
+(defvar md-roam-regex-yaml-font-matter-beginning
+  "\\(^-\\{3\\}\\)$")
+
+(defvar md-roam-regex-yaml-font-matter-ending
+  "\\(^-\\{3\\}\\)$")
+  ;If you change this to "\\(^`'\\{3\\}\\)$"), you shoul dbe able to
+  ;support YAML matter ending with "```". I am not testing it, though.
+
+(defvar md-roam-regex-title
+  "\\(^title:[ \t]*\\)\\(.*\\)")
+
+(defvar md-roam-regex-aliases
+  ;; Assumed to be case insensitive
+  "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
 
 ;;;  Regexp for pandoc style citation for link extraction
 ;;;  Copy from pandco-mode to remove dependency
@@ -84,35 +104,43 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 ;;;  Extracting title from markdown files (YAML frontmatter)
 ;;;  Add advice to org-roam--extract-and-format-titles
 
+(defun md-roam-get-yaml-front-matter ()
+  "Return the text of the YAML front matter of the current buffer.
+Return nil if the front matter does not exist, or incorrectly delineated by
+'---'."
+
+  (save-excursion
+    (goto-char (point-min))
+    (when-let
+        ((startpoint (re-search-forward
+                     md-roam-regex-yaml-font-matter-beginning nil t 1))
+         (endpoint (re-search-forward
+                    md-roam-regex-yaml-font-matter-ending nil t 1)))
+      (buffer-substring-no-properties startpoint endpoint))))
+
 (defun org-roam--extract-titles-mdtitle ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
-This function looks for the YAML frontmatter deliniator '---' begining of
-the buffer. No space is allowed before or after the deliniator.
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer. No space is allowed before or after the delineator.
 
 It assumes:
  (1) Current buffer is a markdonw file (but does not check it)
  (2) It has title in the YAML frontmatter on top of the file
- (3) The format is 'title: The Document Title Value'
+ (3) The format is 'title: The Document Title Value'"
 
-The extraction is done via regex expresion in the variable defined in
-'md-roam-title-regex.
-It expects one or more space after the 'title:' key before the title value.
-If the space is not there, the title extracted will be ':title value'.
-
-At the moment, for some weird reason, the regex leaves one whitespace in front
-of the title. 's-trim-left is used to remove it."
-
-  (when
-    (save-excursion
-      (goto-char (point-min))
-      (re-search-forward "^---\n" 5 t nil))
-    (when (string-match md-roam-title-regex (buffer-string))
-      (list (s-trim-left (match-string-no-properties 2))))))
+    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (cond (frontmatter
+           (string-match md-roam-regex-title frontmatter)
+           (list (match-string-no-properties 2 frontmatter))))))
 
 (defun org-roam--extract-titles-mdalias ()
-  "WIP: Return the aliases from the current buffer."
-  )
+  "Return list of aliases from the front matter section of the current buffer.
+Return nil if none."
+  (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (cond (frontmatter
+           (string-match md-roam-regex-aliases frontmatter)
+           (org-roam--str-to-list (match-string-no-properties 2 frontmatter))))))
 
 (defun org-roam--extract-titles-mdheadline ()
   "WIP: Return the first headline of the current buffer."
@@ -228,6 +256,7 @@ follow this behaviour."
 (defun md-roam-add-message-to-db-build-cache (&optional force)
   "Add a message to the return message from `org-roam-db-build-cache'.
 This is to simply indicate that md-roam is active. FORCE does not do anythying."
+  (when force) ;do nothing
   (when md-roam-verbose
     (message "md-roam is active")))
 
