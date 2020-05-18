@@ -36,14 +36,14 @@
 ;;; Regexp for the beginning and ending of YAML front matter section
 ;;; In markdown-mode, beginning and ending are the same: "---".
 ;;; Separate regular expressions are defined here because in some
-;;; markdown conventions, the ending is delinated by "```".
+;;; markdown conventions, the ending is delineated by "```".
 ;;; This can be potentially supported setting a custom regexp for
-;;; the ending deliniator.
+;;; the ending delineator.
 
 ;;;; These regular expressions are modified versino of
 ;;;; `markdown-regex-yaml-metadata-border.
 ;;;; I am adding "^" to indicate that the a line needs to
-;;;; start with the deliniator.
+;;;; start with the delineator.
 
 (defvar md-roam-regex-yaml-font-matter-beginning
   "\\(^-\\{3\\}\\)$")
@@ -99,7 +99,7 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 
 (defun md-roam-get-yaml-front-matter ()
   "Return the text of the YAML front matter of the current buffer.
-Return nil if the front matter does not exist, or incorrectly deliniated by
+Return nil if the front matter does not exist, or incorrectly delineated by
 '---'."
 
   (save-excursion
@@ -114,8 +114,8 @@ Return nil if the front matter does not exist, or incorrectly deliniated by
 (defun org-roam--extract-titles-mdtitle ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
-This function looks for the YAML frontmatter deliniator '---' begining of
-the buffer. No space is allowed before or after the deliniator.
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer. No space is allowed before or after the delineator.
 
 It assumes:
  (1) Current buffer is a markdonw file (but does not check it)
