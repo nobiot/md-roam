@@ -107,13 +107,14 @@ It is assumed to be a markdown file extension, e.g. .md, and .markdown."
 (defun md-roam-get-yaml-front-matter ()
   "Return the text of the YAML front matter of the current buffer.
 Return nil if the front matter does not exist, or incorrectly delineated by
-'---'."
+'---'. The front matter is required to be at the beginning of the file."
 
   (save-excursion
     (goto-char (point-min))
     (when-let
         ((startpoint (re-search-forward
-                     md-roam-regex-yaml-font-matter-beginning nil t 1))
+                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
+         ;The beginning needs to be in the beginning of buffer
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       (buffer-substring-no-properties startpoint endpoint))))
