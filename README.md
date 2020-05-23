@@ -78,9 +78,9 @@ Known limitations are listed in the next section below.
 
 ## Upstream Org Roam Commits Tested
   
-I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-16, I am using it with upstream version 1.1.0 at commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) (latest as at the time of writing this).
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-23, I am using it with upstream version 1.1.1 at commit [`214f9df`](github.com/org-roam/org-roam/commit/265182a698be6babcbb1) (latest as at the time of writing this).
 
-Please note, however, that Jethro and contributors have added good many new features since my last sync (on 2020-05-02). I have created issues in GitHub for testing these features I see potentially relevant for `md-roam`. 
+With this latest commit, Windows users might encounter an error: 'File not found - "*.org.gpg"' when building the cache DB. My preliminary analysis and a work-around are noted in [issue #17](https://github.com/nobiot/md-roam/issues/17).
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
