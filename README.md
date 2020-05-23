@@ -27,7 +27,7 @@ Upstream `org-roam` is going through many changes. To catch up, `md-roam` is als
 
    You can define the markdown extension of your choice such as `.md` or `.markdown`.
    
-- `title: Note's Title` in the YAML frontrunner delineated by `---`
+- `title: Note's Title` in the YAML frontrunner at the top of the markdown note delineated by `---`
 
   Currently no support for TOML or MMD syntax
 
@@ -48,6 +48,7 @@ roam_alias: "alias 1" "alias 2" "alias 3"
 ---
 ```
 
+- Extracting the first header text as the title when it is not given with YAML front matter in the markdown note. 
 
 Most of the standard `org-roam` features are [should be] still supported. This means two things:
 
@@ -74,9 +75,6 @@ Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in
 
 Known limitations are listed in the next section below.
 
-## Features of Org Roam NOT Supported (Limitations)
-
-- ~~Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))~~ Supports headline PR [#15]
 
 ## Upstream Org Roam Commits Tested
   
