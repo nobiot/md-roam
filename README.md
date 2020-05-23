@@ -76,7 +76,7 @@ Known limitations are listed in the next section below.
 
 ## Features of Org Roam NOT Supported (Limitations)
 
-- Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))
+- ~~Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))~~ Supports headline PR [#15]
 
 ## Upstream Org Roam Commits Tested
   
@@ -107,7 +107,7 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 (setq md-roam-file-extension-single "md") 
   ;set your markdown extension
   ;you can omit this if md, which is the default.
-(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)))
+(setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
   ;you need this as of commit `5f24103`.
 ```
 
@@ -117,10 +117,10 @@ You also need to add your markdown extension to `org-roam-file-extensions` list 
 (setq org-roam-file-extensions '("org" "md"))
 ```
 
-As of commit `5f24103`, `md-roam` uses `org-roam-title-sources` variable to exract the titles and aliases of markdown files. This is done via function `org-roam-titles-mdtitle` and `org-roam-titles-mdalias` respectively. They are defined in `md-roam.el`. Set the following variable. The important part is to set `mdtitle` and `mdalias`. The sequence determines the priority (left-most is the highest priority).
+From commit `5f24103`, `md-roam` uses `org-roam-title-sources` variable to exract the titles, aliases, and headlines of markdown files. This is done via function `org-roam-titles-mdtitle`, `org-roam-titles-mdalias`, and `org-roam-titles-mdheadline` respectively. They are defined in `md-roam.el`. Set the following variable. The important part is to set `mdtitle`, `mdalias`, and `mdheadline`. The sequence determines the priority (left-most is the highest priority).
 
 ```
-(setq org-roam-title-sources '((mdtitle title headline) (mdalias alias)))
+(setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
 ```
 
 I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
