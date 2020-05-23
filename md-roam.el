@@ -60,6 +60,11 @@
   ;; Assumed to be case insensitive
   "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
 
+(defvar md-roam-regex-headline
+  (concat "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
+          "\\|"                      ; regex 'or'
+          "\\(^#+ \\)\\(.*$\\)"))    ;heading with '#'
+
 ;;;  Regexp for pandoc style citation for link extraction
 ;;;  Copy from pandco-mode to remove dependency
 ;;
@@ -143,8 +148,15 @@ Return nil if none."
            (org-roam--str-to-list (match-string-no-properties 2 frontmatter))))))
 
 (defun org-roam--extract-titles-mdheadline ()
-  "WIP: Return the first headline of the current buffer."
-  )
+  "Return the first headline of the current buffer.
+It does not look at the header level; it always returns the first one
+defined by '=', '-', or '#'."
+
+(save-excursion
+  (goto-char (point-min))
+  (when (re-search-forward md-roam-regex-headline nil t 1)
+    (list (or (match-string-no-properties 1)
+              (match-string-no-properties 4))))))
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links
