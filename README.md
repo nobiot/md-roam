@@ -172,8 +172,8 @@ Md-Roam: Copyright © Noboru Ota
 Org-Roam: Copyright © Jethro Kuan and contributors. 
 Distributed under the GNU General Public License, Version 3
 
-[roamresearch]: https://www.roamresearch.com/
 [org]: https://orgmode.org/
 [badge-license]: https://img.shields.io/badge/license-GPL_3-green.svg
-[docs]: https://org-roam.readthedocs.io/
+[docs]: https://org-roam.github.io/org-roam/manual/
 [slack]: https://join.slack.com/t/orgroam/shared_invite/zt-deoqamys-043YQ~s5Tay3iJ5QRI~Lxg
+[discourse]: https://org-roam.discourse.group/
