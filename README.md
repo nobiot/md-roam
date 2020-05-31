@@ -76,9 +76,9 @@ Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in
 Known limitations are listed in the next section below.
 
 
-## Upstream Org Roam Commits Tested
+## Upstream Org-roam Commits Tested
   
-I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-23, I am using it with upstream version 1.1.1 at commit [`214f9df`](github.com/org-roam/org-roam/commit/265182a698be6babcbb1) (latest as at the time of writing this).
+I have been trying to closely trail the upstream `org-roam` development; nevertheless, as it is being actively developed (awesome!), `md-roam` is usually lagging a bit behind. As of 2020-05-31, I am using it with upstream version 1.1.1 at commit [`b2594b8`](https://github.com/org-roam/org-roam/commit/b2594b84aef131ab24dd477a4bd7b2d1a6ca7621) (latest as at the time of writing this).
 
 With this latest commit, Windows users might encounter an error: 'File not found - "*.org.gpg"' when building the cache DB. My preliminary analysis and a work-around are noted in [issue #17](https://github.com/nobiot/md-roam/issues/17).
 
@@ -158,7 +158,7 @@ Add the following config in your `config.el`
     ;you can omit this if md, which is the default.
 ```
 
-## Org-Roam
+## Org-roam
 
 `md-roam` is an unofficial plug-in for `org-roam`. For more information on `org-roam`, refer to [the `org-roam`
 documentation](https://org-roam.readthedocs.io/en/master/installation/). 
