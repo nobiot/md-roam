@@ -145,8 +145,42 @@ It assumes:
 Return nil if none."
   (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match md-roam-regex-aliases frontmatter)
-           (org-roam--str-to-list (match-string-no-properties 2 frontmatter))))))
+           (when (string-match md-roam-regex-aliases frontmatter)
+             (md-roam--yaml-seq-to-list (match-string-no-properties 2 frontmatter)))))))
+
+(defun md-roam--remove-single-quotes (str)
+  "Check if STR is surrounded by single-quotes, and remove them.
+If not, return STR as is."
+  (let ((regexp "\\('\\)\\(.*\\)\\('\\)"))
+    (if (string-match regexp str)
+        (match-string-no-properties 2 str)
+      str)))
+
+(defun md-roam--yaml-seq-to-list (seq)
+    "Return a list from YAML SEQ formatted in the flow style.
+SEQ = sequence, it's an array. At the moment, only the flow style works.
+
+See the spec at https://yaml.org/spec/1.2/spec.html
+  Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
+
+;; The items in the sequence (array) can be separated by different ways.
+;;   1. Spaces like the example from the spec above
+;;   2. Single-quotes 'item'
+;;   3. Double-quotes "item"
+;; Do not escape the singe- or double-quotations. At the moment, that does
+;; lead to error
+
+;; The regexp is meant to to match YAML sequence formatted in the flow style.
+;; At the moment, only the flow style is considered. The number of spaces
+;; between the squeare bracket and the first/last item should not matter.
+;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
+
+    (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
+          (separator ",\s*"))
+    (when (string-match regexp seq)
+      (let ((items (split-string-and-unquote
+                    (match-string-no-properties 2 seq) separator)))
+        (mapcar #'md-roam--remove-single-quotes items)))))
 
 (defun org-roam--extract-titles-mdheadline ()
   "Return the first headline of the current buffer.
