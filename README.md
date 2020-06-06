@@ -29,7 +29,7 @@ Md-roam currently supports the following features for your markdown notes:
    
 - `title: Note's Title` in the YAML frontrunner at the top of the markdown note delineated by `---`
 
-  Currently no support for TOML or MMD syntax
+q  Currently no support for TOML or MMD syntax
 
 - Backlink for the `[[wiki-link]]` syntax
 
@@ -156,7 +156,7 @@ Add the following config in your `config.el`
 
 Md-roam is an unofficial plug-in for Org-roam. For more information on Org-roam, refer to [the Org-roam documentation]( https://org-roam.github.io/org-roam/manual/). 
 
-It has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
+It is being updated from an old version. If some information looks missing from the new version, the [old one](https://org-roam.readthedocs.io/en/master/installation/) has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
 
 ## Knowledge Bases using Org-roam
 
