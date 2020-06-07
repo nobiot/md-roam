@@ -61,8 +61,9 @@
   "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-headline
-  (concat "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
-          "\\|"                      ; regex 'or'
+  (concat "^\s*\n"                   ;exludes YAML front matter
+          "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
+          "\\|"                      ;regex 'or'
           "\\(^#+ \\)\\(.*$\\)"))    ;heading with '#'
 
 ;;;  Regexp for pandoc style citation for link extraction
@@ -137,8 +138,8 @@ It assumes:
 
     (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match md-roam-regex-title frontmatter)
-           (list (match-string-no-properties 2 frontmatter))))))
+           (when (string-match md-roam-regex-title frontmatter)
+             (list (match-string-no-properties 2 frontmatter)))))))
 
 (defun org-roam--extract-titles-mdalias ()
   "Return list of aliases from the front matter section of the current buffer.
@@ -157,7 +158,7 @@ If not, return STR as is."
       str)))
 
 (defun md-roam--yaml-seq-to-list (seq)
-    "Return a list from YAML SEQ formatted in the flow style.
+  "Return a list from YAML SEQ formatted in the flow style.
 SEQ = sequence, it's an array. At the moment, only the flow style works.
 
 See the spec at https://yaml.org/spec/1.2/spec.html
@@ -175,8 +176,8 @@ See the spec at https://yaml.org/spec/1.2/spec.html
 ;; between the squeare bracket and the first/last item should not matter.
 ;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
 
-    (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
-          (separator ",\s*"))
+  (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
+        (separator ",\s*"))
     (when (string-match regexp seq)
       (let ((items (split-string-and-unquote
                     (match-string-no-properties 2 seq) separator)))
@@ -187,11 +188,11 @@ See the spec at https://yaml.org/spec/1.2/spec.html
 It does not look at the header level; it always returns the first one
 defined by '=', '-', or '#'."
 
-(save-excursion
-  (goto-char (point-min))
-  (when (re-search-forward md-roam-regex-headline nil t 1)
-    (list (or (match-string-no-properties 1)
-              (match-string-no-properties 4))))))
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward md-roam-regex-headline nil t 1)
+      (list (or (match-string-no-properties 1)
+                (match-string-no-properties 4))))))
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links
