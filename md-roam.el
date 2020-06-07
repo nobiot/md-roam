@@ -5,11 +5,11 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: May 17, 2020
-;; Version: 1.2.1
+;; Modified: June 06, 2020
+;; Version: 1.3.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
-;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
+;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -61,8 +61,9 @@
   "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-headline
-  (concat "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
-          "\\|"                      ; regex 'or'
+  (concat "^\s*\n"                   ;exludes YAML front matter
+          "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
+          "\\|"                      ;regex 'or'
           "\\(^#+ \\)\\(.*$\\)"))    ;heading with '#'
 
 ;;;  Regexp for pandoc style citation for link extraction
@@ -137,27 +138,61 @@ It assumes:
 
     (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match md-roam-regex-title frontmatter)
-           (list (match-string-no-properties 2 frontmatter))))))
+           (when (string-match md-roam-regex-title frontmatter)
+             (list (match-string-no-properties 2 frontmatter)))))))
 
 (defun org-roam--extract-titles-mdalias ()
   "Return list of aliases from the front matter section of the current buffer.
 Return nil if none."
   (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
-           (string-match md-roam-regex-aliases frontmatter)
-           (org-roam--str-to-list (match-string-no-properties 2 frontmatter))))))
+           (when (string-match md-roam-regex-aliases frontmatter)
+             (md-roam--yaml-seq-to-list (match-string-no-properties 2 frontmatter)))))))
+
+(defun md-roam--remove-single-quotes (str)
+  "Check if STR is surrounded by single-quotes, and remove them.
+If not, return STR as is."
+  (let ((regexp "\\('\\)\\(.*\\)\\('\\)"))
+    (if (string-match regexp str)
+        (match-string-no-properties 2 str)
+      str)))
+
+(defun md-roam--yaml-seq-to-list (seq)
+  "Return a list from YAML SEQ formatted in the flow style.
+SEQ = sequence, it's an array. At the moment, only the flow style works.
+
+See the spec at https://yaml.org/spec/1.2/spec.html
+  Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
+
+;; The items in the sequence (array) can be separated by different ways.
+;;   1. Spaces like the example from the spec above
+;;   2. Single-quotes 'item'
+;;   3. Double-quotes "item"
+;; Do not escape the singe- or double-quotations. At the moment, that does
+;; lead to error
+
+;; The regexp is meant to to match YAML sequence formatted in the flow style.
+;; At the moment, only the flow style is considered. The number of spaces
+;; between the squeare bracket and the first/last item should not matter.
+;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
+
+  (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
+        (separator ",\s*"))
+    (when (string-match regexp seq)
+      (let ((items (split-string-and-unquote
+                    (match-string-no-properties 2 seq) separator)))
+        (mapcar #'md-roam--remove-single-quotes items)))))
 
 (defun org-roam--extract-titles-mdheadline ()
   "Return the first headline of the current buffer.
 It does not look at the header level; it always returns the first one
 defined by '=', '-', or '#'."
 
-(save-excursion
-  (goto-char (point-min))
-  (when (re-search-forward md-roam-regex-headline nil t 1)
-    (list (or (match-string-no-properties 1)
-              (match-string-no-properties 4))))))
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward md-roam-regex-headline nil t 1)
+      (list (or (match-string-no-properties 1)
+                (match-string-no-properties 4))))))
 
 ;;; Extract links in markdown file (wiki and pandocy-style cite)
 ;;; Add advice to org-roam--extract-links

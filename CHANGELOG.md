@@ -1,9 +1,17 @@
 # Changelog
 
-## 1.2.1-md (TBD)
-* Add support aliases of a note with YAML matter property (roam_alias, ROAM_ALIAS, or #+ROAM_ALIAS) [#11]
+## 1.3.0-md (2020-06-07)
+
+### Features
+* Add support aliases of a note with YAML front matter property (roam_alias, ROAM_ALIAS, or #+ROAM_ALIAS) [#11][#21]
 * Deprecate md-roam-title-regex, in favour of md-roam-regex-title
 * Add support markdown headlines ("=", "-", and "#") [#15]
+
+### BREAKING CHANGES
+* If you use the `roam_alias` as the key to define a note's aliases, you can no longer use the Org-roam convention of space-separated "double quotation". You can still continue to use `#+ROAM_ALIAS` in this way, provided that it is used outside the YAML front matter. See README for more detail
+
+### Limitations
+* Only the flow style of the YAML sequence (array) is supported. The block style is not supported. See README for more detail
 
 ## 1.2.0-md (2020-05-16)
 
