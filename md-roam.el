@@ -5,11 +5,11 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: May 17, 2020
-;; Version: 1.2.1
+;; Modified: June 06, 2020
+;; Version: 1.3.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
-;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
+;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
