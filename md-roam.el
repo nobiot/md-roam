@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: June 06, 2020
-;; Version: 1.3.0
+;; Modified: June 19, 2020
+;; Version: 1.3.1
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
@@ -30,6 +30,7 @@
 (require 'f)
 (declare-function org-roam--file-name-extension 'org-roam)
 (declare-function org-roam--str-to-list 'org-roam)
+(declare-function org-roam--org-roam-file-p 'org-roam)
 
 ;;; Md-roam addtional variables
 
@@ -310,6 +311,17 @@ This is to simply indicate that md-roam is active. FORCE does not do anythying."
 
 (advice-add 'org-roam-db-build-cache :before #'md-roam-add-message-to-db-build-cache)
 
+
+;;;; Add advice to org-roam--get-roam-buffers
+;;;; This is for org-roam-swtich-to-buffer
+
+(defun md-roam--get-roam-buffers ()
+  "Return all buffers (md and org) that are Org-roam files."
+  
+  (--filter (org-roam--org-roam-file-p (buffer-file-name it))
+            (buffer-list)))
+
+(advice-add 'org-roam--get-roam-buffers  :override #'md-roam--get-roam-buffers )
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
