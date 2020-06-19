@@ -97,6 +97,8 @@ title: How to Take Smart Notes: One Simple Technique to Boost Writing, Learning 
 Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in this case, the literature note itself ends up referencing itself, adding a cite-backlink to its own backlink buffer -- not a big problem, but you might find it a bit confusing.
 
 ## Upstream Org-roam Commits Tested
+
+30599cc..408e38f (2020-06-19)
   
 I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-06-06 , I am using it with upstream version 1.1.1 at [commit `81e7a5b` bumped from `b2594b8`(2020-05-31)](https://github.com/org-roam/org-roam/compare/b2594b8...81e7a5b). My test results for this delta are recorded in this [issue](https://github.com/nobiot/md-roam/issues/20).
 
