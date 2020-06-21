@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1-md (tbd)
+
+### Features
+- Fix org-roam-switch-to-buffers to show markdown files #23 
+  (It is not explicitly supported; now it should be)
+  
+### Fixes
+
 ## 1.3.0-md (2020-06-07)
 
 ### Features
