@@ -38,6 +38,8 @@ Md-roam currently supports the following features for your markdown notes:
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
 
+- `org-roam-switch-to-buffer` shows all extensions including Markdown and Org files
+
 - Aliases of a note are defined in the YAML front matter with key `roam_alias` (case insensitive). Only a basic subset of the ["flow style" of YAML syntax](https://yaml.org/spec/1.2/spec.html#id2802662) is supported. The array needs to be defined in a single line. Separate each alias with a comma `,`; you can use single quotations or double quotations to surround each alias (see the example below).
 
   Regarding YAML syntax for the front matter, I think this is as far as I can get. I don't think I would be able to support the block style, or flow style with multiple lines with comments with `#`. I'd be happy if someone can PR this, if anyone needs that.
@@ -97,10 +99,8 @@ title: How to Take Smart Notes: One Simple Technique to Boost Writing, Learning 
 Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in this case, the literature note itself ends up referencing itself, adding a cite-backlink to its own backlink buffer -- not a big problem, but you might find it a bit confusing.
 
 ## Upstream Org-roam Commits Tested
-
-30599cc..408e38f (2020-06-19)
   
-I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-06-06 , I am using it with upstream version 1.1.1 at [commit `81e7a5b` bumped from `b2594b8`(2020-05-31)](https://github.com/org-roam/org-roam/compare/b2594b8...81e7a5b). My test results for this delta are recorded in this [issue](https://github.com/nobiot/md-roam/issues/20).
+I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-06-21 , I am using it with upstream version 1.2.0 at [commit `408e38f` bumped from `30599cc`(2020-06-06)](https://github.com/org-roam/org-roam/compare/30599cc..408e38f).Org-roam v1.2.0 comes with many functional enhancements. I have not gone through them systematically yet, but the list is in this [issue](https://github.com/nobiot/md-roam/issues/25).
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
