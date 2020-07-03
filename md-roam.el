@@ -61,6 +61,10 @@
   ;; Assumed to be case insensitive
   "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
 
+(defvar md-roam-regex-ref-key
+  ;; Assumed to be case insensitive
+  "\\(^.*ROAM_KEY:[ \t]*\\)\\(.*\\)")
+
 (defvar md-roam-regex-headline
   (concat "^\s*\n"                   ;exludes YAML front matter
           "\\(.*$\\)\n\\(^[=-]+$\\)" ;heading with '=' and '-'
@@ -273,6 +277,19 @@ It should be used with 'advice-add'."
 
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
+
+;;; Md-roam extract ref via regex
+(defun md-roam--extract-ref ()
+  "Extract roam_key from current buffer; return the type and the key.
+Use regex instead of `org-roam--extract-global-props'.
+Return cons of (type . key). Type is always 'file' for now."
+
+    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (cond (frontmatter
+           (when (string-match md-roam-regex-ref-key frontmatter)
+             (cons "file" (match-string-no-properties 2 frontmatter)))))))
+
+(advice-add 'org-roam--extract-ref :override #'md-roam--extract-ref)
 
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
