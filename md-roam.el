@@ -99,6 +99,24 @@
   "\\(?:[^[:alnum:]]\\|^\\)\\(-?@\\)\\([-a-zA-Z0-9_+:]+\\)"
   "Regular expression for stand-alone citation with no anchor.")
 
+;;; Regexp for extracting tags
+;;  This regexp is intended to be compatible with Zettlr:
+;;
+;;     #tag1 #tag-with-hyphen #tag_with_underscore
+;;
+;;  Note that iA Writer treats hyphen "-" as a word delimiter
+;;  within a tag. That is, iA Writer treats #tag-hyphen tagged as
+;;  #tag, and ignores "-hyphen".
+;;
+;;  If iA Writer's stricter style is preferred, the regexp should
+;;  be defined as:
+;;
+;;     "\\([^/s]\\)\\([#@][[:alnum:]_]+\\)"
+;;
+
+(defvar md-roam-regex-tags-zettlr-style
+  "\\([^/s]\\)\\([#@][[:alnum:]_-]+\\)")
+
 (defvar md-roam-verbose t)
 
 ;;; Md-roam customizing
@@ -204,7 +222,7 @@ defined by '=', '-', or '#'."
 
 (defun md-roam--extract-wiki-links (file-path)
   "Extract links in the form of [[link]].
-FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
+FILE-PATH is mandatory as `org-roam--extra ct-links' identifies it."
   (let (md-links)
     (save-excursion
       (goto-char (point-min))
@@ -275,8 +293,24 @@ It should be used with 'advice-add'."
       (setq links (append md-cite-links links)))
     links))
 
-(advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
+(defun md-roam--extract-only-wiki-links (&optional file-path)
+  "Extract only markdown links (wiki and cite) for FILE-PATH.
+ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
+It should be used with 'advice-add'."
+  (let* ((file-path (or file-path
+                        (file-truename (buffer-file-name))))
+         (links '())
+         (md-links (md-roam--extract-wiki-links file-path))
+         (md-cite-links (md-roam--extract-cite-links file-path)))
+    (when md-links
+      (setq links (append md-links links)))
+    (when md-cite-links
+      (setq links (append md-cite-links links)))
+    links))
+
+;;(advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
+(advice-add 'org-roam--extract-links :override #'md-roam--extract-only-wiki-links)
 
 ;;; Md-roam extract ref via regex
 (defun md-roam--extract-ref ()
@@ -316,6 +350,26 @@ follow this behaviour."
       nil)))
 
 (advice-add 'org-roam--format-link :before-until #'md-roam--format-link)
+
+(defun org-roam--extract-tags-mdroam-zettlr (_file)
+  "Extracts tags defined in the Zettlr style."
+  (save-excursion
+    (let (tags-list)
+      (goto-char (point-min))
+      (while (re-search-forward md-roam-regex-tags-zettlr-style nil t)
+        (let ((tag (match-string-no-properties 2)))
+          (when tag
+            (setq tags-list
+                  (append tags-list (list tag))))))
+      tags-list)))
+
+(defun md-roam--extract-headlines (&optional file-path)
+  "FILE-PATH ignored.
+This fn is meant to do nothing."
+  (when file-path) ;do nothing
+  nil)
+
+(advice-add 'org-roam--extract-headlines :override #'md-roam--extract-headlines)
 
 ;;;; Add advice to org-roam-db-build-cache
 
