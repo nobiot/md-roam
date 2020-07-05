@@ -122,32 +122,57 @@
 ;;; Md-roam customizing
 
 (defcustom md-roam-file-extension-single "md"
-  "Defines the extesion to be used for md-roam wihtin org-roam.
+  "Defines the extesion to be used for Md-roam within Org-roam directory.
 Unlike 'org-roam-file-extension', this is a single value, not a list.
-It is assumed to be a markdown file extension, e.g. .md, and .markdown."
-  
+It is intended to be used for you to define a different markdown extension,
+such as .md and .markdown."
+
   :type 'string
   :group 'org-roam)
 
 (defcustom md-roam-use-org-file-links t
-  "Defines if Md-roam extracts Org's file link for backlinks or not.
-The default is t, that is to extract both wiki-links and Org's file links.
+  "Defines if Md-roam extracts Org's file link for backlinks in md files.
+Default is t, that is to extract both wiki-links and Org's file links.
 For faster performance, set it to nil to extract only
-[[wiki-links]] of Md-roam and ignore the Org file links."
+[[wiki-links]] of Md-roam and ignore the Org file links.
+This does not affect Org files within Org-roam directory."
   
   :type 'boolean
   :group 'org-roam)
 
 (defcustom md-roam-use-org-headlines-backlinks t
-  "Defines if Md-roam extracts Org headlines with orgid for backlinks.
-The default is t, that is to retain the standard Org-roam behaviour.
+  "Defines if Md-roam supports headlines with orgid for backlinks for org files.
+Default is t, that is to retain the standard Org-roam behaviour.
 Markdown does not have the concept of assigning an ID to a headline.
-Disabling this feature will boost performance."
+Disable it when you don't use Org files in your Org-roam directory for better
+performance."
+
+  :type 'boolean
+  :group 'org-roam)
+
+(defcustom md-roam-use-org-extract-ref t
+  "Defines if Md-roam extracts REF_KEY using Org-roam logic.
+Default is t, that is to use #+ref_key with Org-roam logic.
+If nil, Md-roam uses its own regex to look for #+roam_key: or
+roam_key: within YAML front matter only.
+It's intended for better performance, and aesthetic style.
+Recommended if your bibliographic notes are written in markdown files.
+Leave it as default, if they are written in org files."
 
   :type 'boolean
   :group 'org-roam)
 
 ;;; Md-roam functions
+
+
+;;;  Tell if a file is an .org file (or encrypted org file)
+(defun md-roam--org-file-p (path)
+  "Check if PATH is pointing to an org file.
+Return t or nil."
+  (let ((ext (org-roam--file-name-extension path)))
+    (when (string= ext "gpg")           ; Handle encrypted files
+      (setq ext (org-roam--file-name-extension (file-name-sans-extension path))))
+    (string= ext "org")))
 
 ;;;  Extracting title from markdown files (YAML frontmatter)
 ;;;  Add advice to org-roam--extract-and-format-titles
@@ -256,7 +281,7 @@ defined by '=', '-', or '#'."
 
 (defun md-roam--extract-wiki-links (file-path)
   "Extract links in the form of [[link]].
-FILE-PATH is mandatory as `org-roam--extra ct-links' identifies it."
+FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
   (let (md-links)
     (save-excursion
       (goto-char (point-min))
@@ -320,24 +345,9 @@ It should be used with 'advice-add' and :around ."
          (links '())
          (md-links (md-roam--extract-wiki-links file-path))
          (md-cite-links (md-roam--extract-cite-links file-path)))
-    (when (or (org-roam--org-file-p file-path)
-              md-roam-use-org-file-links)
+    (when (or (md-roam--org-file-p file-path)
+              md-roam-use-org-file-links) ;For [[file:file.ext][desc]] within md
       (setq links (apply original-extract-links file-path nil)))
-    (when md-links
-      (setq links (append md-links links)))
-    (when md-cite-links
-      (setq links (append md-cite-links links)))
-    links))
-
-(defun md-roam--extract-only-wiki-links (&optional file-path)
-  "Extract only markdown links (wiki and cite) for FILE-PATH.
-ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
-It should be used with 'advice-add' and :orveride."
-  (let* ((file-path (or file-path
-                        (file-truename (buffer-file-name))))
-         (links '())
-         (md-links (md-roam--extract-wiki-links file-path))
-         (md-cite-links (md-roam--extract-cite-links file-path)))
     (when md-links
       (setq links (append md-links links)))
     (when md-cite-links
@@ -347,7 +357,7 @@ It should be used with 'advice-add' and :orveride."
 (advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
 ;;; Md-roam extract ref via regex
-(defun md-roam--extract-ref ()
+(defun md-roam--extract-ref-regex ()
   "Extract roam_key from current buffer; return the type and the key.
 Use regex instead of `org-roam--extract-global-props'.
 Return cons of (type . key). Type is always 'file' for now."
@@ -357,16 +367,27 @@ Return cons of (type . key). Type is always 'file' for now."
            (when (string-match md-roam-regex-ref-key frontmatter)
              (cons "file" (match-string-no-properties 2 frontmatter)))))))
 
-(advice-add 'org-roam--extract-ref :override #'md-roam--extract-ref)
+(defun md-roam--extract-ref (original-extract-ref)
+  "Extract roam_key from current buffer.
+If current buffer is Org file, use ORIGINAL-EXTRACT-REF:
+`org-roam--extract-ref'.
+If not, use Md-roam specific regex to search within YAML front matter.
+It is meant to be used with `advice-add' :around."
+
+  (if md-roam-use-org-extract-ref
+      (funcall original-extract-ref)
+    (md-roam--extract-ref-regex)))
+
+(advice-add 'org-roam--extract-ref :around #'md-roam--extract-ref)
 
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
 
 (defun md-roam--format-link (target &optional description)
   "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
-Add advice to 'org-roam--format-link' within 'org-roam-inert'.
+Add advice to 'org-roam--format-link' within 'org-roam-insert'.
 Customize `md-roam-file-extension-single' to define the extesion (e.g. md) that
-follow this behaviour."
+follows this behaviour."
   
   (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
     (if (string= ext md-roam-file-extension-single)
@@ -411,13 +432,19 @@ follow this behaviour."
                            (append tags-list (list tag))))))
                tags-list))))))
 
-(defun md-roam--extract-headlines (&optional file-path)
-  "Retrun the boolean of `use-org-headlines-backlinks'; FILE-PATH ignored.
-It is meant to be used with `advice-add' :before-while."
-  (when file-path) ;do nothing
-  md-roam-use-org-headlines-backlinks)
+(defun md-roam--extract-headlines (original-extract-headlines &optional file-path)
+  "Extract headline org-id's for backlinks if FILE-PATH is org file.
+This extraction is done via ORIGINAL-EXTRACT-HEADLINES fn:
+`org-roam--extract-headlines'. Return nil if not org files.
+It is meant to be used with `advice-add' :around."
 
-(advice-add 'org-roam--extract-headlines :before-while #'md-roam--extract-headlines)
+  (let* ((file-path (or file-path
+                        (file-truename (buffer-file-name)))))
+    (if (md-roam--org-file-p file-path)
+        (apply original-extract-headlines file-path nil)
+      nil)))
+
+(advice-add 'org-roam--extract-headlines :around #'md-roam--extract-headlines)
 
 ;;;; Add advice to org-roam-db-build-cache
 
