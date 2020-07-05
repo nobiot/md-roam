@@ -1,12 +1,19 @@
 # Changelog
 
-## 1.3.1-md (tbd)
+## 1.4.0-md (2020-07-05)
+
+You can also find more about v1.4 than this terse feature list in [this document](./docs/v1.4.md).
 
 ### Features
-- Fix org-roam-switch-to-buffers to show markdown files #23 
+- Change the extraction logic of roam_key (ref-key) to regexp
+- Add support for #tags
+- Improve performance by disabling Org-ID search for Markdown files
+- Add customising option: md-roam-use-org-file-links
+- Add org-roam-switch-to-buffers to show markdown files #23 
   (It is not explicitly supported; now it should be)
   
 ### Fixes
+None
 
 ## 1.3.0-md (2020-06-07)
 
