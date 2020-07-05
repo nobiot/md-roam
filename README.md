@@ -3,8 +3,7 @@
 ## Synopsis
 
 Use Org-roam with markdown files by adding Md-roam to it.
-Md-roam extends the features and functions provided by [Org-roam](https://github.com/org-roam/org-roam) to support markdown files in addition to org files. 
-
+Md-roam extends the features and functions provided by [Org-roam](https://www.orgroam.com/) to support markdown files in addition to org files. 
 
 ![Animation showing org-roam-insert to insert a wiki link](./images/markdown-in-org-roam-insert.gif "Animation showing org-roam-insert to insert a wiki link")
 
@@ -21,6 +20,8 @@ Md-roam extends the features and functions provided by [Org-roam](https://github
 Upstream Org-roam is going through many changes. To catch up, Md-roam is also changing heavily. I suggest to refer to Changelog maintained [here](CHANGELOG.md) for some breaking changes. Nothing should break your notes as Org-roam is not designed to alter them, but it is a good practice to keep a backup of your notes, and the org-roam database file (usually named `org-roam.db` stored in your `org-roam-directory`).
 
 ## Features of Org Roam Supported
+
+v1.4 is out with support for additional Org-roam features and optional configuration for performance improvement. Find more about it in [this document](./docs/v1.4.md). 
 
 Md-roam currently supports the following features for your markdown notes:
 
@@ -40,48 +41,25 @@ Md-roam currently supports the following features for your markdown notes:
 
 - `org-roam-switch-to-buffer` shows all extensions including Markdown and Org files
 
-- Aliases of a note are defined in the YAML front matter with key `roam_alias` (case insensitive). Only a basic subset of the ["flow style" of YAML syntax](https://yaml.org/spec/1.2/spec.html#id2802662) is supported. The array needs to be defined in a single line. Separate each alias with a comma `,`; you can use single quotations or double quotations to surround each alias (see the example below).
+- [Aliases of a note](./docs/aliases.md). They defined in the YAML front matter with key `roam_alias` (case insensitive):
 
-  Regarding YAML syntax for the front matter, I think this is as far as I can get. I don't think I would be able to support the block style, or flow style with multiple lines with comments with `#`. I'd be happy if someone can PR this, if anyone needs that.
-
-  Alternatively, you can still follow the Org-roam convention: `#+ROAM_ALIAS` If you use this way, you define aliases following Org-roam convention, in double quotation marks, separated by a space. See illustrative examples below.
-  
-
-``` markdown
-
----
-title: New way of definining Org-roam aliases within YAML front matter
-date: 2020-05-17
-other_key: value
+```
 roam_alias: [ alias 1, 'alias 2', "alias 3" ]
----
-
-# Heading 1
-Body of this note continues...
-
 ```
+  See the linked documentation for more detail.
 
-``` markdown
+- Extracting the first header text as the title when it is not given with YAML front matter in the markdown note 
 
----
-title: This way of defining aliases still work
-date: 2020-06-07
-other_key: value
----
-#+ROAM_ALIAS: "alias 1" "alias 2" "alias 3"
+- Tags with the following format: #tag, #tag-with-hyphen, or #tag_with_underscore
 
-# Heading 1
-Body of this note continues...
-```
-
-- Extracting the first header text as the title when it is not given with YAML front matter in the markdown note. 
+- Specify bibliographic notes with a `roam_key: citation-key` key-value pair in the YAML font matter (opt-in customising option) 
 
 Most of the standard Org-roam features are [should be] still supported. This means two things:
 
 1. You can mix markdown and org files in your org roam directories. 
 2. You should be able to use `org` syntax in your `.md` files, such as:
 
-- `#+TILTLE: org title`
+- `#+TITLE: org title`
 
 - `[[file:linked-file.org][Note's Title]]`
 
@@ -100,7 +78,9 @@ Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in
 
 ## Upstream Org-roam Commits Tested
   
-I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-06-21 , I am using it with upstream version 1.2.0 at [commit `408e38f` bumped from `30599cc`(2020-06-06)](https://github.com/org-roam/org-roam/compare/30599cc..408e38f).Org-roam v1.2.0 comes with many functional enhancements. I have not gone through them systematically yet, but the list is in this [issue](https://github.com/nobiot/md-roam/issues/25).
+I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-07-05 , I am using it with upstream version 1.2.0 at [commit `79c75ac` bumped from `408e38f`](https://github.com/org-roam/org-roam/compare/408e38f..79c75ac).
+
+Org-roam v1.2.0 comes with many functional enhancements. I have not gone through them systematically yet, but the list is in this [issue](https://github.com/nobiot/md-roam/issues/25); even if I have not looked at them, my experience has been that Md-roam works with this version as it used to. Now that v1.4 is out (2020-07-05), I think I will have a bit more time to look at these and additional commits that have come in-between.
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
@@ -183,11 +163,6 @@ Add the following config in your `config.el`
 Md-roam is an unofficial plug-in for Org-roam. For more information on Org-roam, refer to [the Org-roam documentation]( https://org-roam.github.io/org-roam/manual/). 
 
 It is being updated from an old version. If some information looks missing from the new version, the [old one](https://org-roam.readthedocs.io/en/master/installation/) has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
-
-## Knowledge Bases using Org-roam
-
-- [Jethro Kuan](https://braindump.jethro.dev/)
-  ([Source](https://github.com/jethrokuan/braindump/tree/master/org))
 
 ## License
 
