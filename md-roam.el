@@ -125,7 +125,26 @@
   "Defines the extesion to be used for md-roam wihtin org-roam.
 Unlike 'org-roam-file-extension', this is a single value, not a list.
 It is assumed to be a markdown file extension, e.g. .md, and .markdown."
-  :type '(repeat string)
+  
+  :type 'string
+  :group 'org-roam)
+
+(defcustom md-roam-use-org-file-links t
+  "Defines if Md-roam extracts Org's file link for backlinks or not.
+The default is t, that is to extract both wiki-links and Org's file links.
+For faster performance, set it to nil to extract only
+[[wiki-links]] of Md-roam and ignore the Org file links."
+  
+  :type 'boolean
+  :group 'org-roam)
+
+(defcustom md-roam-use-org-headlines-backlinks t
+  "Defines if Md-roam extracts Org headlines with orgid for backlinks.
+The default is t, that is to retain the standard Org-roam behaviour.
+Markdown does not have the concept of assigning an ID to a headline.
+Disabling this feature will boost performance."
+
+  :type 'boolean
   :group 'org-roam)
 
 ;;; Md-roam functions
@@ -147,6 +166,21 @@ Return nil if the front matter does not exist, or incorrectly delineated by
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       (buffer-substring-no-properties startpoint endpoint))))
+
+(defun md-roam-get-yaml-front-matter-endpoint ()
+  "Return the endpoint of the YAML front matter of the current buffer.
+Return nil if the front matter does not exist, or incorrectly delineated by
+'---'. The front matter is required to be at the beginning of the file."
+
+  (save-excursion
+    (goto-char (point-min))
+    (when-let
+        ((startpoint (re-search-forward
+                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
+         ;The beginning needs to be in the beginning of buffer
+         (endpoint (re-search-forward
+                    md-roam-regex-yaml-font-matter-ending nil t 1)))
+      endpoint)))
 
 (defun org-roam--extract-titles-mdtitle ()
   "Extract title from the current buffer (markdown file with YAML frontmatter).
@@ -280,24 +314,25 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
 (defun md-roam--extract-links (original-extract-links &optional file-path)
   "Add markdown links (wiki and cite) for FILE-PATH to the org-roam equivalent.
 ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
-It should be used with 'advice-add'."
+It should be used with 'advice-add' and :around ."
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name))))
-         (links (apply original-extract-links file-path nil))
+         (links '())
          (md-links (md-roam--extract-wiki-links file-path))
          (md-cite-links (md-roam--extract-cite-links file-path)))
-
+    (when (or (org-roam--org-file-p file-path)
+              md-roam-use-org-file-links)
+      (setq links (apply original-extract-links file-path nil)))
     (when md-links
       (setq links (append md-links links)))
     (when md-cite-links
       (setq links (append md-cite-links links)))
     links))
 
-
 (defun md-roam--extract-only-wiki-links (&optional file-path)
   "Extract only markdown links (wiki and cite) for FILE-PATH.
 ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
-It should be used with 'advice-add'."
+It should be used with 'advice-add' and :orveride."
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name))))
          (links '())
@@ -309,8 +344,7 @@ It should be used with 'advice-add'."
       (setq links (append md-cite-links links)))
     links))
 
-;;(advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
-(advice-add 'org-roam--extract-links :override #'md-roam--extract-only-wiki-links)
+(advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
 
 ;;; Md-roam extract ref via regex
 (defun md-roam--extract-ref ()
@@ -331,9 +365,9 @@ Return cons of (type . key). Type is always 'file' for now."
 (defun md-roam--format-link (target &optional description)
   "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
 Add advice to 'org-roam--format-link' within 'org-roam-inert'.
-Customize `org-roam--file-name-extension' to define the extesion (e.g. md) that
+Customize `md-roam-file-extension-single' to define the extesion (e.g. md) that
 follow this behaviour."
-
+  
   (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
     (if (string= ext md-roam-file-extension-single)
         (let* ((here (ignore-errors
@@ -351,7 +385,7 @@ follow this behaviour."
 
 (advice-add 'org-roam--format-link :before-until #'md-roam--format-link)
 
-(defun org-roam--extract-tags-mdroam-zettlr (_file)
+(defun org-roam--extract-tags-md-buffer (_file)
   "Extracts tags defined in the Zettlr style."
   (save-excursion
     (let (tags-list)
@@ -359,17 +393,31 @@ follow this behaviour."
       (while (re-search-forward md-roam-regex-tags-zettlr-style nil t)
         (let ((tag (match-string-no-properties 2)))
           (when tag
-            (setq tags-list
-                  (append tags-list (list tag))))))
+            (setq tags-list (append tags-list (list tag))))))
       tags-list)))
 
-(defun md-roam--extract-headlines (&optional file-path)
-  "FILE-PATH ignored.
-This fn is meant to do nothing."
-  (when file-path) ;do nothing
-  nil)
+(defun org-roam--extract-tags-md-frontmatter (_file)
+  "Extracts tags defined in the Zettlr style only within front matter."
 
-(advice-add 'org-roam--extract-headlines :override #'md-roam--extract-headlines)
+  (let ((endpoint (md-roam-get-yaml-front-matter-endpoint)))
+    (cond (endpoint
+           (save-excursion
+             (let (tags-list)
+               (goto-char (point-min))
+               (while (re-search-forward md-roam-regex-tags-zettlr-style endpoint t)
+                 (let ((tag (match-string-no-properties 2)))
+                   (when tag
+                     (setq tags-list
+                           (append tags-list (list tag))))))
+               tags-list))))))
+
+(defun md-roam--extract-headlines (&optional file-path)
+  "Retrun the boolean of `use-org-headlines-backlinks'; FILE-PATH ignored.
+It is meant to be used with `advice-add' :before-while."
+  (when file-path) ;do nothing
+  md-roam-use-org-headlines-backlinks)
+
+(advice-add 'org-roam--extract-headlines :before-while #'md-roam--extract-headlines)
 
 ;;;; Add advice to org-roam-db-build-cache
 
@@ -381,7 +429,6 @@ This is to simply indicate that md-roam is active. FORCE does not do anythying."
     (message "md-roam is active")))
 
 (advice-add 'org-roam-db-build-cache :before #'md-roam-add-message-to-db-build-cache)
-
 
 ;;;; Add advice to org-roam--get-roam-buffers
 ;;;; This is for org-roam-swtich-to-buffer
