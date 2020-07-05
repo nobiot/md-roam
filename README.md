@@ -1,5 +1,6 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 
+
 ## Synopsis
 
 Use Org-roam with markdown files by adding Md-roam to it.
@@ -47,8 +48,10 @@ Md-roam currently supports the following features for your markdown notes:
 
    ```
    roam_alias: [ alias 1, 'alias 2', "alias 3" ]
-```
+   ```
+   
    See the linked documentation for more detail.
+
 
 - Extracting the first header text as the title when it is not given with YAML front matter in the markdown note 
 
