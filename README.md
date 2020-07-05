@@ -144,7 +144,7 @@ From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract
 ```
 
 ```
-;; Disale Org-roam file link for Markdown files for performance.
+;; Disable Org-roam file link for Markdown files for performance.
 (setq md-roam-use-org-file-links nil) ; default is t
 ```
 
