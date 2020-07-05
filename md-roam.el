@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: June 19, 2020
-;; Version: 1.3.1
+;; Modified: July 5, 2020
+;; Version: 1.4.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
@@ -137,16 +137,6 @@ For faster performance, set it to nil to extract only
 [[wiki-links]] of Md-roam and ignore the Org file links.
 This does not affect Org files within Org-roam directory."
   
-  :type 'boolean
-  :group 'org-roam)
-
-(defcustom md-roam-use-org-headlines-backlinks t
-  "Defines if Md-roam supports headlines with orgid for backlinks for org files.
-Default is t, that is to retain the standard Org-roam behaviour.
-Markdown does not have the concept of assigning an ID to a headline.
-Disable it when you don't use Org files in your Org-roam directory for better
-performance."
-
   :type 'boolean
   :group 'org-roam)
 
@@ -437,7 +427,7 @@ follows this behaviour."
 This extraction is done via ORIGINAL-EXTRACT-HEADLINES fn:
 `org-roam--extract-headlines'. Return nil if not org files.
 It is meant to be used with `advice-add' :around."
-
+    
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name)))))
     (if (md-roam--org-file-p file-path)
