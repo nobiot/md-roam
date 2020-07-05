@@ -5,13 +5,15 @@
 Use Org-roam with markdown files by adding Md-roam to it.
 Md-roam extends the features and functions provided by [Org-roam](https://www.orgroam.com/) to support markdown files in addition to org files. 
 
-![Animation showing org-roam-insert to insert a wiki link](./images/markdown-in-org-roam-insert.gif "Animation showing org-roam-insert to insert a wiki link")
+![Screen shot showing main features of Org-roam supported by Md-roam](./images/2020-07-05_22-02-32.png)
 
-![Animation showing following wikilink to see the backlink added](./images/markdown-in-org-roam-backlink.gif "Animation showing following wikilink to see the backlink added")
-
-![Animation showing adding citation using pandoc syntax](./images/markdown-in-org-roam_cite.gif "Animation showing adding citation using pandoc syntax")
-
-![Animation showing adding cite backlink in the literature note](./images/markdown-in-org-roam_cite2.gif "Animation showing adding cite backlink in the literature note")
+1. Title and other meta data in the YAML front matter
+2. #tag support to categorize notes
+3. Specify notes for a reference material (literature notes / bibliographic notes) with `roam_key:` 
+4. Aliases of a note with `roam_alias:`
+5. Link for backlinks with [wiki-link] syntax
+6. Citation with Pandoc style [@citekey], @citekey -@citekey, etc.
+7. Org-roam standard backlink buffer with Org mode (no modification to the database and backlink buffer)
 
 ---
 
