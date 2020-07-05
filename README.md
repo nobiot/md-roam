@@ -43,10 +43,10 @@ Md-roam currently supports the following features for your markdown notes:
 
 - [Aliases of a note](./docs/aliases.md). They defined in the YAML front matter with key `roam_alias` (case insensitive):
 
+   ```
+   roam_alias: [ alias 1, 'alias 2', "alias 3" ]
 ```
-roam_alias: [ alias 1, 'alias 2', "alias 3" ]
-```
-  See the linked documentation for more detail.
+   See the linked documentation for more detail.
 
 - Extracting the first header text as the title when it is not given with YAML front matter in the markdown note 
 
