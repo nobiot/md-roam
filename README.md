@@ -44,7 +44,7 @@ Md-roam currently supports the following features for your markdown notes:
 
 - `org-roam-switch-to-buffer` shows all extensions including Markdown and Org files
 
-- [Aliases of a note](./docs/aliases.md). They defined in the YAML front matter with key `roam_alias` (case insensitive):
+- [Aliases of a note](./docs/aliases.md). They are defined in the YAML front matter with key `roam_alias` (case insensitive):
 
    ```
    roam_alias: [ alias 1, 'alias 2', "alias 3" ]
@@ -126,6 +126,30 @@ From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract
 (setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
 ```
 
+[v1.4](./docs/v1.4.md) adds some more variables:
+
+```
+;; Disable Org-roam logic in favour of Md-roam's `roam_key: bibkey` syntax
+;; for performance (regex) and aethetics
+(setq md-roam-use-org-extract-ref nil) ; default is t
+```
+
+```
+;; tag support
+(setq org-roam-tag-sources '(md-frontmatter))
+
+;; it is a list, so you can keep the Org-roam standard
+;; for example:
+(setq org-roam-tag-sources '(prop md-frontmatter)) 
+```
+
+```
+;; Disale Org-roam file link for Markdown files for performance.
+(setq md-roam-use-org-file-links nil) ; default is t
+```
+
+## Doom
+
 I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
 With it, you can use GitHub, GitLab (mirror) or clone this repo to your local, and add respective one of these below. Don't forget to `doom sync`.
 
@@ -172,6 +196,7 @@ It is being updated from an old version. If some information looks missing from 
 ## License
 
 Md-Roam: Copyright © Noboru Ota
+
 Org-Roam: Copyright © Jethro Kuan and contributors. 
 Distributed under the GNU General Public License, Version 3
 
