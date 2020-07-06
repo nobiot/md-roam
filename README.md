@@ -81,7 +81,7 @@ For cite backlinks to work, you need `org-ref` installed. There is no need to co
 
 ## Installation
 
-Md-roam is a "plug-in" for Org-roam. You need to get Org-roam working first. Add Md-roam, and load or require it before Org-roam. Md-roam does not change any part of source code of Org-roam.
+Md-roam is a "plug-in" for Org-roam. You need to [get Org-roam working](https://org-roam.discourse.group/t/zero-to-emacs-and-org-roam-a-step-by-step-guide-on-windows-10) first. Add Md-roam, and load or require it before Org-roam. Md-roam does not change any part of source code of Org-roam.
 
 I don't intend it to be available in MELPA at the moment; I have never done it.
 
