@@ -50,36 +50,22 @@ Md-roam currently supports the following features for your markdown notes:
    roam_alias: [ alias 1, 'alias 2', "alias 3" ]
    ```
    
-   See the linked documentation for more detail.
-
-
 - Extracting the first header text as the title when it is not given with YAML front matter in the markdown note 
 
-- Tags with the following format: #tag, #tag-with-hyphen, or #tag_with_underscore
+- [Tags](./docs/v1.4.md#add-support-for-tags) with the following format: #tag, #tag-with-hyphen, or #tag_with_underscore
 
-- Specify bibliographic notes with a `roam_key: citation-key` key-value pair in the YAML font matter (opt-in customising option) 
+- [Specify bibliographic notes with a `roam_key: citation-key` key-value pair](./docs/v1.4.md#change-the-extraction-logic-of-roam_key-ref-key-to-regexp) in the YAML font matter (opt-in customising option) 
 
 Most of the standard Org-roam features are [should be] still supported. This means two things:
 
 1. You can mix markdown and org files in your org roam directories. 
 2. You should be able to use `org` syntax in your `.md` files, such as:
 
-- `#+TITLE: org title`
+- `#+TITLE: org title` (customisable via `org-roam-title-sources`)
 
-- `[[file:linked-file.org][Note's Title]]`
+- `[[file:linked-file.org][Note's Title]]` (customisable via [`md-roam-use-org-file-links`](./docs/v1.4.md#add-customising-option-md-roam-use-org-file-links))
 
-- (hopefully `org-ref`) -- not tested as I don't use it
-
-Although markdown files do not need `org-ref` it is required if you would like to use cite backlinks. 
-
-One notable difference may be that the cite file (the literature source) uses `#+ROAM_KEY` without the `cite:` -- for this key, Md-roam only supports the Org-roam convention with `#+`. For example, in your literature note, you need do the following:
-
-```
-title: How to Take Smart Notes: One Simple Technique to Boost Writing, Learning and Thinking – for Students, Academics and Nonfiction Book Writers
-#+ROAM_KEY: Ahrens2017
-```
-
-Specifying the roam key with `cite:` as in `cite:Ahrens2017` should work, but in this case, the literature note itself ends up referencing itself, adding a cite-backlink to its own backlink buffer -- not a big problem, but you might find it a bit confusing.
+- (hopefully `org-ref`) -- not tested as I don't use it 
 
 ## Upstream Org-roam Commits Tested
   
