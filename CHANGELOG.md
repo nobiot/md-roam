@@ -10,7 +10,7 @@ You can also find more about v1.4 than this terse feature list in [this document
 - Improve performance by disabling Org-ID search for Markdown files
 - Add customising option: md-roam-use-org-file-links
 - Add org-roam-switch-to-buffers to show markdown files #23 
-  (It is not explicitly supported; now it should be)
+  (It was not explicitly supported; now it is)
   
 ### Fixes
 None
