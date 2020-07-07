@@ -33,3 +33,12 @@ other_key: value
 # Heading 1
 Body of this note continues...
 ```
+
+
+## Configuration
+
+Use Org-roam's configuration `org-roam-title-sources`. Add `mdalias` if you wish to use the Md-roam's style to define aliases. See the example below.
+
+``` emacs-lisp
+(setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
+```
