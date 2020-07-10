@@ -143,7 +143,7 @@ With it, you can use GitHub, GitLab (mirror) or clone this repo to your local, a
 ;in your package.el
 
 (package! md-roam
-  :recipe (:gitlab
+  :recipe (:host gitlab
   :repo "nobiot/md-roam"))
 ```
 
@@ -151,7 +151,7 @@ With it, you can use GitHub, GitLab (mirror) or clone this repo to your local, a
 ;in your package.el
 
 (package! md-roam
-  :recipe (:github
+  :recipe (:host github
   :repo "nobiot/md-roam"))
 ```
 
