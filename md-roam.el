@@ -31,6 +31,7 @@
 (declare-function org-roam--file-name-extension 'org-roam)
 (declare-function org-roam--str-to-list 'org-roam)
 (declare-function org-roam--org-roam-file-p 'org-roam)
+(declare-function url-type ''url-parse)
 
 ;;; Md-roam addtional variables
 
@@ -41,7 +42,7 @@
 ;;; This can be potentially supported setting a custom regexp for
 ;;; the ending delineator.
 
-;;;; These regular expressions are modified versino of
+;;;; These regular expressions are modified version of
 ;;;; `markdown-regex-yaml-metadata-border.
 ;;;; I am adding "^" to indicate that the a line needs to
 ;;;; start with the delineator.
@@ -51,8 +52,8 @@
 
 (defvar md-roam-regex-yaml-font-matter-ending
   "\\(^-\\{3\\}\\)$")
-  ;If you change this to "\\(^`'\\{3\\}\\)$"), you shoul dbe able to
-  ;support YAML matter ending with "```". I am not testing it, though.
+;; "If you change this to `\\(^`'\\{3\\}\\)$', you should be able to
+;; support YAML matter ending with ```. I am not testing it, though.")
 
 (defvar md-roam-regex-title
   "\\(^title:[ \t]*\\)\\(.*\\)")
@@ -71,51 +72,62 @@
           "\\|"                      ;regex 'or'
           "\\(^#+ \\)\\(.*$\\)"))    ;heading with '#'
 
-;;;  Regexp for pandoc style citation for link extraction
-;;;  Copy from pandco-mode to remove dependency
-;;
-;;   [@bibkey], [@bibkey1, xx; bibkey2, yy]
-;;   https://pandoc.org/MANUAL.html#citations
-;;
-;;   Blah blah [see @doe99, pp. 33-35; also @smith04, chap. 1].
-;;   Blah blah [@doe99, pp. 33-35, 38-39 and *passim*].
-;;   Blah blah [@smith04; @doe99].
-;;   [@smith{ii, A, D-Z}, with a suffix]
-;;   [@smith, {pp. iv, vi-xi, (xv)-(xvii)} with suffix here]
-;;
-;;   A minus sign (-) before the @ will suppress mention
-;;
-;;     Smith says blah [-@smith04].
-;;
-;;   in-text citation:
-;;
-;;     @smith04 says blah.
-;;
-;;     @smith04 [p. 33] says blah.
-
-;; With my testing, citation-2 can detect all the cases for md-roam
-
 (defvar md-roam-regex-in-text-citation-2
   "\\(?:[^[:alnum:]]\\|^\\)\\(-?@\\)\\([-a-zA-Z0-9_+:]+\\)"
-  "Regular expression for stand-alone citation with no anchor.")
+  "Regular expression for stand-alone citation with no anchor.
+Regexp for pandoc style citation for link extraction
+Copy from pandco-mode to remove dependency
 
-;;; Regexp for extracting tags
-;;  This regexp is intended to be compatible with Zettlr:
-;;
-;;     #tag1 #tag-with-hyphen #tag_with_underscore
-;;
-;;  Note that iA Writer treats hyphen "-" as a word delimiter
-;;  within a tag. That is, iA Writer treats #tag-hyphen tagged as
-;;  #tag, and ignores "-hyphen".
-;;
-;;  If iA Writer's stricter style is preferred, the regexp should
-;;  be defined as:
-;;
-;;     "\\([^/s]\\)\\([#@][[:alnum:]_]+\\)"
-;;
+[@bibkey], [@bibkey1, xx; bibkey2, yy]
+https://pandoc.org/MANUAL.html#citations
+
+Blah blah [see @doe99, pp. 33-35; also @smith04, chap. 1].
+Blah blah [@doe99, pp. 33-35, 38-39 and *passim*].
+Blah blah [@smith04; @doe99].
+[@smith{ii, A, D-Z}, with a suffix]
+[@smith, {pp. iv, vi-xi, (xv)-(xvii)} with suffix here]
+
+A minus sign (-) before the @ will suppress mention
+
+Smith says blah [-@smith04].
+
+in-text citation:
+
+@smith04 says blah.
+
+@smith04 [p. 33] says blah.
+
+With my testing, citation-2 can detect all the cases for md-roam")
 
 (defvar md-roam-regex-tags-zettlr-style
-  "\\([^/s]\\)\\([#@][[:alnum:]_-]+\\)")
+  "\\([^/s]\\)\\([#@][[:alnum:]_-]+\\)"
+  "Regexp for extracting tags.
+This regexp is intended to be compatible with Zettlr:
+
+     `#tag1 #tag-with-hyphen #tag_with_underscore'
+
+Note that iA Writer treats hyphen (-) as a word delimiter
+within a tag. That is, iA Writer treats #tag-hyphen tagged as
+#tag, and ignores `-hyphen'.
+
+If iA Writer's stricter style is preferred, the regexp should
+be defined as:
+
+     `\\([^/s]\\)\\([#@][[:alnum:]_]+\\)'")
+
+(defconst md-roam-regex-link-inline
+  ;; Copy of markdown-regex-link-inline from Markdown Mode
+  ;; Regexp for inline links [description](link) and images ![description](link)
+  "\\(?1:!\\)?\\(?2:\\[\\)\\(?3:\\^?\\(?:\\\\\\]\\|[^]]\\)*\\|\\)\\(?4:\\]\\)\\(?5:(\\)\\(?6:[^)]*?\\)\\(?:\\s-+\\(?7:\"[^\"]*\"\\)\\)?\\(?8:)\\)"
+  "Regular expression for a [text](file) or an image link ![text](file).
+Group 1 matches the leading exclamation point (optional).
+Group 2 matches the opening square bracket.
+Group 3 matches the text inside the square brackets.
+Group 4 matches the closing square bracket.
+Group 5 matches the opening parenthesis.
+Group 6 matches the URL.
+Group 7 matches the title (optional).
+Group 8 matches the closing parenthesis.")
 
 (defvar md-roam-verbose t)
 
@@ -151,6 +163,15 @@ Leave it as default, if they are written in org files."
 
   :type 'boolean
   :group 'org-roam)
+
+(defcustom md-roam-use-markdown-file-links t
+  "Defines if Md-roam extracts links defined via Markdown syntax.
+Default is t. Md-roam searches the buffer for links
+  [descriptoin](path/to/file.ext)."
+
+  :type 'boolean
+  :group 'org-roam)
+
 
 ;;; Md-roam functions
 
@@ -281,7 +302,7 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                (begin-of-block)
                (end-of-block)
                (content)
-               (link-type "roam"))
+               (link-type "file"))
           (when (f-file-p to-file)
             ;; get the text block = content around the link as context
             (forward-sentence)
@@ -311,7 +332,7 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                (end-of-block)
                (content)
                (link-type "cite"))
-          (when to-file)
+          (when to-file) ;TODO to change to (f-file-p to-file)
           (forward-paragraph)
           (setq end-of-block (point))
           (backward-paragraph)
@@ -326,6 +347,41 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                                       (list :content content :point begin-of-block))))))))  ; properties
     md-cite-links))
 
+(defun md-roam--extract-file-links (file-path)
+  "Extract file links specified in the Markdwon syntax in FILE-PATH.
+File links are defined wqith [description](path/to/file.ext).
+When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
+  (let (md-file-links)
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward md-roam-regex-link-inline nil t)
+        (let ((imagep (match-string-no-properties 1))
+               (link (match-string-no-properties 6))
+               (begin-of-block)
+               (end (match-end 8))
+               (end-of-block)
+               (content)
+               (link-type "file"))
+          (when (and (not imagep)
+                     (not (url-type (url-generic-parse-url link)))
+                     (f-file-p link)))
+            ;; get the text block = content around the link as context
+            (forward-sentence)
+            (setq end-of-block (point))
+            (backward-sentence)
+            (setq begin-of-block (point))
+            (setq content (buffer-substring-no-properties begin-of-block end-of-block))
+            (goto-char end) ; move back to the end of the regexp for the loop
+            (setq md-file-links
+                  (append md-file-links
+                          (list
+                           (vector file-path ; file-from
+                                   (file-truename
+                                    (expand-file-name link (file-name-directory file-path))) ; file-to
+                                   link-type ;lik-type = roam
+                                   (list :content content :point begin-of-block))))))))
+    md-file-links))
+
 (defun md-roam--extract-links (original-extract-links &optional file-path)
   "Add markdown links (wiki and cite) for FILE-PATH to the org-roam equivalent.
 ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
@@ -334,12 +390,17 @@ It should be used with 'advice-add' and :around ."
                         (file-truename (buffer-file-name))))
          (links '())
          (md-links (md-roam--extract-wiki-links file-path))
-         (md-cite-links (md-roam--extract-cite-links file-path)))
+         (md-cite-links (md-roam--extract-cite-links file-path))
+         (md-file-links '()))
     (when (or (md-roam--org-file-p file-path)
               md-roam-use-org-file-links) ;For [[file:file.ext][desc]] within md
       (setq links (apply original-extract-links file-path nil)))
+    (when md-roam-use-markdown-file-links ;For [description](link) syntax
+      (setq md-file-links (md-roam--extract-file-links file-path)))
     (when md-links
       (setq links (append md-links links)))
+    (when md-file-links
+      (setq links (append md-file-links links)))
     (when md-cite-links
       (setq links (append md-cite-links links)))
     links))
