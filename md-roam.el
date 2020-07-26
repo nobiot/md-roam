@@ -304,7 +304,7 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                (content)
                (link-type "file"))
           ;; get the text block = content around the link as context
-          (forward-sentence)
+          (when (/= (point)(point-max))(forward-sentence))
           (setq end-of-block (point))
           (backward-sentence)
           (setq begin-of-block (point))
@@ -363,7 +363,7 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
           (when (and (not imagep)
                      (not (url-type (url-generic-parse-url link))))
             ;; get the text block = content around the link as context
-            (forward-sentence)
+            (when (/= (point)(point-max))(forward-sentence))
             (setq end-of-block (point))
             (backward-sentence)
             (setq begin-of-block (point))
