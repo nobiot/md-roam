@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: July 5, 2020
-;; Version: 1.4.0
+;; Modified: July 26, 2020
+;; Version: 1.4.1
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
@@ -116,10 +116,11 @@ be defined as:
      `\\([^/s]\\)\\([#@][[:alnum:]_]+\\)'")
 
 (defconst md-roam-regex-link-inline
-  ;; Copy of markdown-regex-link-inline from Markdown Mode
-  ;; Regexp for inline links [description](link) and images ![description](link)
   "\\(?1:!\\)?\\(?2:\\[\\)\\(?3:\\^?\\(?:\\\\\\]\\|[^]]\\)*\\|\\)\\(?4:\\]\\)\\(?5:(\\)\\(?6:[^)]*?\\)\\(?:\\s-+\\(?7:\"[^\"]*\"\\)\\)?\\(?8:)\\)"
-  "Regular expression for a [text](file) or an image link ![text](file).
+  "Copy of markdown-regex-link-inline from Markdown Mode.
+Regexp for inline links [description](link) and images ![description](link).
+
+Regular expression for a [text](file) or an image link ![text](file).
 Group 1 matches the leading exclamation point (optional).
 Group 2 matches the opening square bracket.
 Group 3 matches the text inside the square brackets.
@@ -164,9 +165,9 @@ Leave it as default, if they are written in org files."
   :type 'boolean
   :group 'org-roam)
 
-(defcustom md-roam-use-markdown-file-links t
+(defcustom md-roam-use-markdown-file-links nil
   "Defines if Md-roam extracts links defined via Markdown syntax.
-Default is t. Md-roam searches the buffer for links
+Default is nil. If enabled, Md-roam searches the buffer for links
   [descriptoin](path/to/file.ext)."
 
   :type 'boolean
@@ -314,7 +315,7 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                 (append md-links
                         (list (vector file-path ; file-from
                                       (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
-                                      link-type ;
+                                      link-type
                                       (list :content content :point begin-of-block)))))))) ; properties
     md-links))
 
@@ -375,7 +376,7 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
                            (vector file-path ; file-from
                                    (file-truename
                                     (expand-file-name link (file-name-directory file-path))) ; file-to
-                                   link-type ;lik-type = roam
+                                   link-type
                                    (list :content content :point begin-of-block)))))))))
     md-file-links))
 

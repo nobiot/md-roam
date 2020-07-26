@@ -24,8 +24,6 @@ Upstream Org-roam is going through many changes. To catch up, Md-roam is also ch
 
 ## Features of Org Roam Supported
 
-v1.4 is out with support for additional Org-roam features and optional configuration for performance improvement. Find more about it in [this document](./docs/v1.4.md). 
-
 Md-roam currently supports the following features for your markdown notes:
 
 - Customize the markdown extension you use.
@@ -36,15 +34,17 @@ Md-roam currently supports the following features for your markdown notes:
 
    Currently no support for TOML or MMD syntax
 
-- Backlink for the `[[wiki-link]]` syntax
+- Backlinks with the `[[wiki-link]]` syntax
 
 - `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. 
+
+- ![new](https://img.shields.io/badge/new-%20-green) [Backlink with the Markdown standard link syntax](docs/file-link.md) `[description](path/to/file.ext)` 
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
 
 - `org-roam-switch-to-buffer` shows all extensions including Markdown and Org files
 
-- [Aliases of a note](./docs/aliases.md). They are defined in the YAML front matter with key `roam_alias` (case insensitive):
+- [Aliases of a note](docs/aliases.md). They are defined in the YAML front matter with key `roam_alias` (case insensitive):
 
    ```
    roam_alias: [ alias 1, 'alias 2', "alias 3" ]
@@ -68,10 +68,10 @@ Most of the standard Org-roam features are [should be] still supported. This mea
 - (hopefully `org-ref`) -- not tested as I don't use it 
 
 ## Upstream Org-roam Commits Tested
-  
-I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-07-05 , I am using it with upstream version 1.2.0 at [commit `79c75ac` bumped from `408e38f`](https://github.com/org-roam/org-roam/compare/408e38f..79c75ac).
 
-Org-roam v1.2.0 comes with many functional enhancements. I have not gone through them systematically yet, but the list is in this [issue](https://github.com/nobiot/md-roam/issues/25); even if I have not looked at them, my experience has been that Md-roam works with this version as it used to. Now that v1.4 is out (2020-07-05), I think I will have a bit more time to look at these and additional commits that have come in-between.
+I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-07-26 , I am using it with upstream version 1.2.0 at [commit `379d5e4` bumped from `79c75ac`](https://github.com/org-roam/org-roam/compare/79c75ac..379d5e4).
+
+Org-roam v1.2.0 comes with many functional enhancements. I have not gone through them systematically yet, but the list is in this [issue](https://github.com/nobiot/md-roam/issues/25); even if I have not looked at them, my experience has been that Md-roam works with this version as it used to.
 
 If anyone has some spare time, I would appreciate your helping with testing (and fixing issues). I'll be happy to have comments logged in issues in GitHub (it seems people are more comfortable with it than GitLab) -- I'll try to make explicit and community-friendly how we can use issues etc. as communication channels. 
 
@@ -102,25 +102,25 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 
 You also need to add your markdown extension to `org-roam-file-extensions` list -- this is for Org-roam to know that you use the extension with Org-roam.
 
-```
+``` emacs-lisp
 (setq org-roam-file-extensions '("org" "md"))
 ```
 
 From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract the titles, aliases, and headlines of markdown files. This is done via function `org-roam-titles-mdtitle`, `org-roam-titles-mdalias`, and `org-roam-titles-mdheadline` respectively. They are defined in `md-roam.el`. Set the following variable. The important part is to set `mdtitle`, `mdalias`, and `mdheadline`. The sequence determines the priority (left-most is the highest priority).
 
-```
+``` emacs-lisp
 (setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
 ```
 
 [v1.4](./docs/v1.4.md) adds some more variables:
 
-```
+``` emacs-lisp
 ;; Disable Org-roam logic in favour of Md-roam's `roam_key: bibkey` syntax
 ;; for performance (regex) and aethetics
 (setq md-roam-use-org-extract-ref nil) ; default is t
 ```
 
-```
+``` emacs-lisp
 ;; tag support
 (setq org-roam-tag-sources '(md-frontmatter))
 
@@ -129,10 +129,18 @@ From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract
 (setq org-roam-tag-sources '(prop md-frontmatter)) 
 ```
 
-```
+``` emacs-lisp
 ;; Disable Org-roam file link for Markdown files for performance.
 (setq md-roam-use-org-file-links nil) ; default is t
 ```
+
+[Markdown link syntax is now supported for backlinks](docs/file-link.md)
+
+``` emacs-lisp
+;; Enable backlinks with using Markdown link syntax [description](path/to/file.ext)
+(setq md-roam-use-markdown-file-links t) ; default is nil
+```
+
 
 ## Doom
 

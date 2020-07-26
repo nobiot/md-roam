@@ -1,5 +1,14 @@
 # Changelog
 
+## TBD
+
+### Features
+- Add support for backlink extraction for Markdown standard syntax `[description](path/to/file.ext)` See [this doc](docs/file-link.md) for more detail
+
+### Fixes
+- (fix) Link extraction does not work when the end of the link is the end of the curren buffer
+- (fix) `org-roam-db-build-cache does not extract links correctly -- Remove (when (f-file-p to-file) from extract links functions
+
 ## 1.4.0-md (2020-07-05)
 
 You can also find more about v1.4 than this terse feature list in [this document](./docs/v1.4.md).
