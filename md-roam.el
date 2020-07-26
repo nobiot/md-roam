@@ -303,21 +303,20 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                (end-of-block)
                (content)
                (link-type "file"))
-          (when (f-file-p to-file)
-            ;; get the text block = content around the link as context
-            (forward-sentence)
-            (setq end-of-block (point))
-            (backward-sentence)
-            (setq begin-of-block (point))
-            (setq content (buffer-substring-no-properties begin-of-block end-of-block))
-            (goto-char end) ; move back to the end of the regexp for the loop
-            (setq md-links
-                  (append md-links
-                          (list (vector file-path ; file-from
-                                        (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
-                                        link-type ;
-                                        (list :content content :point begin-of-block))))))))) ; properties
-      md-links))
+          ;; get the text block = content around the link as context
+          (forward-sentence)
+          (setq end-of-block (point))
+          (backward-sentence)
+          (setq begin-of-block (point))
+          (setq content (buffer-substring-no-properties begin-of-block end-of-block))
+          (goto-char end) ; move back to the end of the regexp for the loop
+          (setq md-links
+                (append md-links
+                        (list (vector file-path ; file-from
+                                      (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
+                                      link-type ;
+                                      (list :content content :point begin-of-block)))))))) ; properties
+    md-links))
 
 (defun md-roam--extract-cite-links (file-path)
   "Extract cites defined by @bibkey.
@@ -332,7 +331,6 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
                (end-of-block)
                (content)
                (link-type "cite"))
-          (when to-file) ;TODO to change to (f-file-p to-file)
           (forward-paragraph)
           (setq end-of-block (point))
           (backward-paragraph)
@@ -363,8 +361,7 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
                (content)
                (link-type "file"))
           (when (and (not imagep)
-                     (not (url-type (url-generic-parse-url link)))
-                     (f-file-p link)))
+                     (not (url-type (url-generic-parse-url link))))
             ;; get the text block = content around the link as context
             (forward-sentence)
             (setq end-of-block (point))
@@ -379,7 +376,7 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
                                    (file-truename
                                     (expand-file-name link (file-name-directory file-path))) ; file-to
                                    link-type ;lik-type = roam
-                                   (list :content content :point begin-of-block))))))))
+                                   (list :content content :point begin-of-block)))))))))
     md-file-links))
 
 (defun md-roam--extract-links (original-extract-links &optional file-path)
