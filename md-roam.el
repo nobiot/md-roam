@@ -432,8 +432,8 @@ It is meant to be used with `advice-add' :around."
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
 
-(defun md-roam--format-link (target &optional description)
-  "Formats a [[wikilink]] for a given file TARGET and link DESCRIPTION.
+(defun md-roam--format-link (target &optional description type)
+  "Formats a [[wikilink]] for a given file TARGET, link DESCRIPTION and link TYPE.
 Add advice to 'org-roam--format-link' within 'org-roam-insert'.
 Customize `md-roam-file-extension-single' to define the extesion (e.g. md) that
 follows this behaviour."
