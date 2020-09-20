@@ -348,7 +348,7 @@ FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
 
 (defun md-roam--extract-file-links (file-path)
   "Extract file links specified in the Markdwon syntax in FILE-PATH.
-File links are defined wqith [description](path/to/file.ext).
+File links are defined with [description](path/to/file.ext).
 When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
   (let (md-file-links)
     (save-excursion
