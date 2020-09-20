@@ -71,10 +71,10 @@ Most of the standard Org-roam features are [should be] still supported. This mea
 
 I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-09-20 , I am using it with upstream version  1.2.1 at [commit `f5257ce` bumped from `379d5e4`](https://github.com/org-roam/org-roam/compare/f5257ce..79c75ac).
 
-I may be behind systematic testing of new and existing functions of Org-roam; nevertheless, my almost-daily usage of the current state of software confirms that Md-roam is useable with main features of Org-roam as at the commit noted above. I tend to do the following operation to see if it "works" for me. Please feel free to use GitHub issues to advise if something important is not working -- I can't promise I can fix everything, but I will try.
+I may be behind systematic testing of new and existing functions of Org-roam; nevertheless, my almost-daily usage of the current state of software confirms that Md-roam is useable with main features of Org-roam as at the commit noted above. I tend to do the following operations to see if it "works" for me. Please feel free to use GitHub issues to advise if something important is not working -- I can't promise I can fix everything, but I will try.
 
 1. Create a new note, and link to an existing note; check if the backlink appears in the latter
-2. Remove the link, and see if it removes the backlnk
+2. Remove the link, and see if it removes the backlink
 3. Create a new note in an external editor (such as iA in my iPad, then sync to my PC where I have Emacs -- real use for me); see if the next DB build adds that new note in. Test this for delete, too.
 
 With this commit, I'm also happy to see that `[[Title of a note]]` can be used to establish a backlink. This comes directly from Org-roam's function around "fuzzy links". It is in a fluid state at the moment (Org-roam project is working to revise how it works). I have noted my findings so far in issues [#37] and [#41]. I will probably wait for the new changes to settle a bit, test them, and write up a bit more documentation in Md-roam for relevant functions.
