@@ -384,8 +384,11 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
   "Add markdown links (wiki and cite) for FILE-PATH to the org-roam equivalent.
 ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
 It should be used with 'advice-add' and :around ."
+
+  (require 'org-ref nil t)
   (let* ((file-path (or file-path
-                        (file-truename (buffer-file-name))))
+                      org-roam-file-name
+                      (buffer-file-name)))
          (links '())
          (md-links (md-roam--extract-wiki-links file-path))
          (md-cite-links (md-roam--extract-cite-links file-path))
