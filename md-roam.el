@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: July 26, 2020
-;; Version: 1.4.1
+;; Modified: November 08, 2020
+;; Version: 1.4.2
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
@@ -14,7 +14,7 @@
 ;; This file is not part of GNU Emacs.
 ;;
 ;;; Commentary:
-;;  Use org-roam with markdown files by adding md-roam to it. md-roam extends
+;;  Use org-roam with markdown files by adding md-roam to it.  md-roam extends
 ;;  the features and functions provided by org-roam to support markdown files
 ;;  in addition to org files.
 ;;
@@ -149,7 +149,7 @@ Default is t, that is to extract both wiki-links and Org's file links.
 For faster performance, set it to nil to extract only
 [[wiki-links]] of Md-roam and ignore the Org file links.
 This does not affect Org files within Org-roam directory."
-  
+
   :type 'boolean
   :group 'org-roam)
 
@@ -435,13 +435,15 @@ It is meant to be used with `advice-add' :around."
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
 
-(defun md-roam--format-link (target &optional description type)
-  "Formats a [[wikilink]] for a given file TARGET, link DESCRIPTION and link TYPE.
-Add advice to 'org-roam--format-link' within 'org-roam-insert'.
-Customize `md-roam-file-extension-single' to define the extesion (e.g. md) that
-follows this behaviour."
-  
-  (let ((ext (org-roam--file-name-extension (buffer-file-name (buffer-base-buffer)))))
+(defun md-roam--format-link (target &optional description _type)
+  "Formats a [[wikilink]] for a given file TARGET, link DESCRIPTION.  _TYPE is
+not used for Md-roam.  In Org-roam it differentiates file vs id to construct a
+link Add advice to 'org-roam--format-link' within 'org-roam-insert'.
+Customize `md-roam-file-extension-single' to define the extesion (e.g. md)
+that follows this behaviour."
+
+  (let* ((target (org-roam-link-get-path target))
+         (ext (org-roam--file-name-extension target)))
     (if (string= ext md-roam-file-extension-single)
         (let* ((here (ignore-errors
                        (-> (or (buffer-base-buffer)
@@ -456,7 +458,7 @@ follows this behaviour."
                   " " description))
       nil)))
 
-(advice-add 'org-roam--format-link :before-until #'md-roam--format-link)
+(advice-add 'org-roam-format-link :before-until #'md-roam--format-link)
 
 (defun org-roam--extract-tags-md-buffer (_file)
   "Extracts tags defined in the Zettlr style."
@@ -489,7 +491,7 @@ follows this behaviour."
 This extraction is done via ORIGINAL-EXTRACT-HEADLINES fn:
 `org-roam--extract-headlines'. Return nil if not org files.
 It is meant to be used with `advice-add' :around."
-    
+
   (let* ((file-path (or file-path
                         (file-truename (buffer-file-name)))))
     (if (md-roam--org-file-p file-path)
@@ -514,7 +516,7 @@ This is to simply indicate that md-roam is active. FORCE does not do anythying."
 
 (defun md-roam--get-roam-buffers ()
   "Return all buffers (md and org) that are Org-roam files."
-  
+
   (--filter (org-roam--org-roam-file-p (buffer-file-name it))
             (buffer-list)))
 
