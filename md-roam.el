@@ -417,9 +417,9 @@ Return cons of (type . key). Type is always 'file' for now."
     (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (cond (frontmatter
            (when (string-match md-roam-regex-ref-key frontmatter)
-             (cons "file" (match-string-no-properties 2 frontmatter)))))))
+             (list (cons "cite" (match-string-no-properties 2 frontmatter))))))))
 
-(defun md-roam--extract-ref (original-extract-ref)
+(defun md-roam--extract-ref (original-extract-refs)
   "Extract roam_key from current buffer.
 If current buffer is Org file, use ORIGINAL-EXTRACT-REF:
 `org-roam--extract-ref'.
@@ -427,10 +427,10 @@ If not, use Md-roam specific regex to search within YAML front matter.
 It is meant to be used with `advice-add' :around."
 
   (if md-roam-use-org-extract-ref
-      (funcall original-extract-ref)
+      (funcall original-extract-refs)
     (md-roam--extract-ref-regex)))
 
-(advice-add 'org-roam--extract-ref :around #'md-roam--extract-ref)
+(advice-add 'org-roam--extract-refs :around #'md-roam--extract-ref)
 
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
