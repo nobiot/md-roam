@@ -4,15 +4,15 @@
 ## Synopsis
 
 Use Org-roam with markdown files by adding Md-roam to it.
-Md-roam extends the features and functions provided by [Org-roam](https://www.orgroam.com/) to support markdown files in addition to org files. 
+Md-roam extends the features and functions provided by [Org-roam](https://www.orgroam.com/) to support markdown files in addition to org files.
 
 ![Screen shot showing main features of Org-roam supported by Md-roam](./images/2020-07-05_22-02-32.png)
 
 1. Title and other meta data in the YAML front matter
 2. #tag support to categorize notes
-3. Specify notes for a reference material (literature notes / bibliographic notes) with `roam_key:` 
+3. Specify notes for a reference material (literature notes / bibliographic notes) with `roam_key:`
 4. Aliases of a note with `roam_alias:`
-5. Link for backlinks with [wiki-link] syntax
+5. Link for backlinks with [[wiki-link]] syntax
 6. Citation with Pandoc style [@citekey], @citekey -@citekey, etc.
 7. Org-roam standard backlink buffer with Org mode (no modification to the database and backlink buffer)
 
@@ -29,16 +29,16 @@ Md-roam currently supports the following features for your markdown notes:
 - Customize the markdown extension you use.
 
    You can define the markdown extension of your choice such as `.md` or `.markdown`.
-   
+
 - `title: Note's Title` in the YAML front matter at the top of the markdown note delineated by `---`
 
    Currently no support for TOML or MMD syntax
 
 - Backlinks with the `[[wiki-link]]` syntax
 
-- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks. 
+- `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks.
 
-- ![new](https://img.shields.io/badge/new-%20-green) [Backlink with the Markdown standard link syntax](docs/file-link.md) `[description](path/to/file.ext)` 
+- ![new](https://img.shields.io/badge/new-%20-green) [Backlink with the Markdown standard link syntax](docs/file-link.md) `[description](path/to/file.ext)`
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
 
@@ -49,27 +49,29 @@ Md-roam currently supports the following features for your markdown notes:
    ```
    roam_alias: [ alias 1, 'alias 2', "alias 3" ]
    ```
-   
-- Extracting the first header text as the title when it is not given with YAML front matter in the markdown note 
+
+- Extracting the first header text as the title when it is not given with YAML front matter in the markdown note
 
 - [Tags](./docs/v1.4.md#add-support-for-tags) with the following format: #tag, #tag-with-hyphen, or #tag_with_underscore
 
-- [Specify bibliographic notes with a `roam_key: citation-key` key-value pair](./docs/v1.4.md#change-the-extraction-logic-of-roam_key-ref-key-to-regexp) in the YAML font matter (opt-in customising option) 
+- [Specify bibliographic notes with a `roam_key: citation-key` key-value pair](./docs/v1.4.md#change-the-extraction-logic-of-roam_key-ref-key-to-regexp) in the YAML font matter (opt-in customising option)
+
+**Note**: Extractin of multiple `#+roam_key`s (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key` (issue [#48](https://github.com/nobiot/md-roam/issues/48)). Currently one file can have only one `roam_key:`, which continues to work when  `md-roam-use-org-extract-ref` is set to `nil`.
 
 Most of the standard Org-roam features are [should be] still supported. This means two things:
 
-1. You can mix markdown and org files in your org roam directories. 
+1. You can mix markdown and org files in your org roam directories.
 2. You should be able to use `org` syntax in your `.md` files, such as:
 
 - `#+TITLE: org title` (customisable via `org-roam-title-sources`)
 
 - `[[file:linked-file.org][Note's Title]]` (customisable via [`md-roam-use-org-file-links`](./docs/v1.4.md#add-customising-option-md-roam-use-org-file-links))
 
-- (hopefully `org-ref`) -- not tested as I don't use it 
+- (hopefully `org-ref`) -- not tested as I don't use it
 
 ## Upstream Org-roam Commits Tested
 
-I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-09-20 , I am using it with upstream version  1.2.1 at [commit `f5257ce` bumped from `379d5e4`](https://github.com/org-roam/org-roam/compare/f5257ce..79c75ac).
+I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-11-08 , I am using it with upstream version  1.2.2 at [commit  `c6797cb` bumped from `f5257ce`](https://github.com/org-roam/org-roam/compare/c6797cb..f5257ce).
 
 I may be behind systematic testing of new and existing functions of Org-roam; nevertheless, my almost-daily usage of the current state of software confirms that Md-roam is useable with main features of Org-roam as at the commit noted above. I tend to do the following operations to see if it "works" for me. Please feel free to use GitHub issues to advise if something important is not working -- I can't promise I can fix everything, but I will try.
 
@@ -97,7 +99,7 @@ You can download `md-roam.el` file, or clone this repository. Place the file in 
 
 (require 'md-roam) ;this must be before org-roam
 
-(setq md-roam-file-extension-single "md") 
+(setq md-roam-file-extension-single "md")
   ;set your markdown extension
   ;you can omit this if md, which is the default.
 (setq org-roam-title-sources '((mdtitle title mdheadline headline) (mdalias alias)))
@@ -130,7 +132,7 @@ From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract
 
 ;; it is a list, so you can keep the Org-roam standard
 ;; for example:
-(setq org-roam-tag-sources '(prop md-frontmatter)) 
+(setq org-roam-tag-sources '(prop md-frontmatter))
 ```
 
 ``` emacs-lisp
@@ -181,21 +183,21 @@ Add the following config in your `config.el`
 
 (use-package! md-roam ; load immediately, before org-roam
   :config
-  (setq md-roam-file-extension-single "md")) 
+  (setq md-roam-file-extension-single "md"))
     ;you can omit this if md, which is the default.
 ```
 
 ## Org-roam
 
-Md-roam is an unofficial plug-in for Org-roam. For more information on Org-roam, refer to [the Org-roam documentation]( https://org-roam.github.io/org-roam/manual/). 
+Md-roam is an unofficial plug-in for Org-roam. For more information on Org-roam, refer to [the Org-roam documentation]( https://org-roam.github.io/org-roam/manual/).
 
-It is being updated from an old version. If some information looks missing from the new version, the [old one](https://org-roam.readthedocs.io/en/master/installation/) has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations). 
+It is being updated from an old version. If some information looks missing from the new version, the [old one](https://org-roam.readthedocs.io/en/master/installation/) has installation and configuration instructions (including installation guide for Windows users, and Doom and Spacemacs configurations).
 
 ## License
 
 Md-Roam: Copyright © Noboru Ota
 
-Org-Roam: Copyright © Jethro Kuan and contributors. 
+Org-Roam: Copyright © Jethro Kuan and contributors.
 Distributed under the GNU General Public License, Version 3
 
 [org]: https://orgmode.org/

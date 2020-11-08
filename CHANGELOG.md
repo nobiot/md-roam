@@ -1,11 +1,16 @@
 # Changelog
 
-## TBD
+## 1.4.1-md (2020-11-08)
 
 ### Features
 - Add support for backlink extraction for Markdown standard syntax `[description](path/to/file.ext)` See [this doc](docs/file-link.md) for more detail
 
+### Limitation
+- Extractin of multiple `#+roam_key` (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key:` (issue [#48](https://github.com/nobiot/md-roam/issues/48)).
+
 ### Fixes
+- (Fix) roam-insert function
+- (Fix) issue #46: file-truename: Wrong type argument: arrayp, nil
 - (fix) Link extraction does not work when the end of the link is the end of the curren buffer
 - (fix) `org-roam-db-build-cache does not extract links correctly -- Remove (when (f-file-p to-file) from extract links functions
 
@@ -18,9 +23,9 @@ You can also find more about v1.4 than this terse feature list in [this document
 - Add support for #tags
 - Improve performance by disabling Org-ID search for Markdown files
 - Add customising option: md-roam-use-org-file-links
-- Add org-roam-switch-to-buffers to show markdown files #23 
+- Add org-roam-switch-to-buffers to show markdown files #23
   (It was not explicitly supported; now it is)
-  
+
 ### Fixes
 None
 
@@ -40,17 +45,17 @@ None
 ## 1.2.0-md (2020-05-16)
 
 ### BREAKING CHANGES
-Upstream commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) compared to the last commit I tested [`0132546`](https://github.com/org-roam/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) introduces updates to database structure. I observe a change of version 2 to 5 in the matter of 15 days. I welcome the active development. 
+Upstream commit [`265182a`](https://github.com/org-roam/org-roam/commit/265182a698be6babcbb11718c2821c747b1cff52) compared to the last commit I tested [`0132546`](https://github.com/org-roam/org-roam/commit/0132546e56eb5cffd6cc52177b6ffbeab0d84743) introduces updates to database structure. I observe a change of version 2 to 5 in the matter of 15 days. I welcome the active development.
 
-Practically, this might mean that you need to re-build your `org-roam.db`. In my case, I experienced "Removing old name: Permission denied" error on my Windows 10 machine. I have no reason that I don't have permission for this file. I renamed it to make it a backup, and started `org-roam` to rebuild the database file from scratch. No harm done. My notes, backlinks and cite links look good so far. 
+Practically, this might mean that you need to re-build your `org-roam.db`. In my case, I experienced "Removing old name: Permission denied" error on my Windows 10 machine. I have no reason that I don't have permission for this file. I renamed it to make it a backup, and started `org-roam` to rebuild the database file from scratch. No harm done. My notes, backlinks and cite links look good so far.
 
-Please take your usual caution of backing up your note and database files. 
+Please take your usual caution of backing up your note and database files.
 
 * Use of upstream `org-roam-title-sources` variable
 
 ### Limitations
 * ~~Does not support aliases for a file (#+ROAM_ALIAS) ([PR#5](https://github.com/nobiot/md-roam/pull/5))~~
-* ~~Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))~~ 
+* ~~Does not support (feat): optionally use headline as title [#538](https://github.com/jethrokuan/org-roam/pull/538) (See [#4](https://github.com/nobiot/md-roam/issues/4), [#5](https://github.com/nobiot/md-roam/pull/5))~~
 
 ## 1.1.0-md (2020-04-19)
 TODO: If I follow [Semantic Versioning](https://semver.org/) -- I should -- this would have to be v2.0.0 [note 2020-04-26].
@@ -88,13 +93,13 @@ There are a couple of assumptions:
 ## 1.0.2 (2020-03-24)
 TODO The version numbers are confusing with the upstream `org-roam`.
 
-This change enables extraction of the title from the current buffer (markdown file with YAML frontmatter, deliniated by `---`). It also keeps the normal org syntax of defining the title: `#+TITLE`. The org syntax is prioritized for backward compatibility. Other markdown related syntax is not supported, such as Multi-Markdown metadata, pandoc, or TOML. 
+This change enables extraction of the title from the current buffer (markdown file with YAML frontmatter, deliniated by `---`). It also keeps the normal org syntax of defining the title: `#+TITLE`. The org syntax is prioritized for backward compatibility. Other markdown related syntax is not supported, such as Multi-Markdown metadata, pandoc, or TOML.
 
 Currently, md-roam adaptation does not look for YAML frontmatter for roam_alias. The org-roam syntax is kept as is. You can continue to use `#+ROAM_ALIAS` (I don't use it, so not a priority for me).
 
 * Adapt `org-roam--extract-titles` to extract titles in markdown files
 * Add `md-roam--extract-title-from-current-buffer` and `md-roam-title-regex`
-  
+
 
 ## 1.0.1 (2020-03-22) Adaptation by nobiot
 
