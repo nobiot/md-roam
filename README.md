@@ -38,7 +38,7 @@ Md-roam currently supports the following features for your markdown notes:
 
 - `org-roam-insert` to insert `[[filename-without-extension]]` to create backlinks.
 
-- ![new](https://img.shields.io/badge/new-%20-green) [Backlink with the Markdown standard link syntax](docs/file-link.md) `[description](path/to/file.ext)`
+- [Backlink with the Markdown standard link syntax](docs/file-link.md) `[description](path/to/file.ext)`
 
 - pandoc style citation for cite links, such as `[@bibkey]`, `@bibkey` `-@bibkey`
 
@@ -56,7 +56,7 @@ Md-roam currently supports the following features for your markdown notes:
 
 - [Specify bibliographic notes with a `roam_key: citation-key` key-value pair](./docs/v1.4.md#change-the-extraction-logic-of-roam_key-ref-key-to-regexp) in the YAML font matter (opt-in customising option)
 
-**Note**: Extractin of multiple `#+roam_key`s (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key` (issue [#48](https://github.com/nobiot/md-roam/issues/48)). Currently one file can have only one `roam_key:`, which continues to work when  `md-roam-use-org-extract-ref` is set to `nil`.
+🚧 v**Note**: Extractin of multiple `#+roam_key`s (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key` (issue [#48](https://github.com/nobiot/md-roam/issues/48)). Currently one file can have only one `roam_key:`, which continues to work when  `md-roam-use-org-extract-ref` is set to `nil`.
 
 Most of the standard Org-roam features are [should be] still supported. This means two things:
 
