@@ -12,7 +12,7 @@ Md-roam extends the features and functions provided by [Org-roam](https://www.or
 2. #tag support to categorize notes
 3. Specify notes for a reference material (literature notes / bibliographic notes) with `roam_key:`
 4. Aliases of a note with `roam_alias:`
-5. Link for backlinks with [[wiki-link]] syntax
+5. Link for backlinks with [[wiki-link]] syntax (it's filename without extension, compatible with `markdown-follow-wiki-link-at-point`)
 6. Citation with Pandoc style [@citekey], @citekey -@citekey, etc.
 7. Org-roam standard backlink buffer with Org mode (no modification to the database and backlink buffer)
 
@@ -56,7 +56,7 @@ Md-roam currently supports the following features for your markdown notes:
 
 - [Specify bibliographic notes with a `roam_key: citation-key` key-value pair](./docs/v1.4.md#change-the-extraction-logic-of-roam_key-ref-key-to-regexp) in the YAML font matter (opt-in customising option)
 
-🚧 v**Note**: Extractin of multiple `#+roam_key`s (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key` (issue [#48](https://github.com/nobiot/md-roam/issues/48)). Currently one file can have only one `roam_key:`, which continues to work when  `md-roam-use-org-extract-ref` is set to `nil`.
+🚧 **Note**: Extractin of multiple `#+roam_key`s (via new upstream function `org-roam--extract-refs`) is not supported for Md-roam extraction `roam_key` (issue [#48](https://github.com/nobiot/md-roam/issues/48)). Currently one file can have only one `roam_key:`, which continues to work when  `md-roam-use-org-extract-ref` is set to `nil`.
 
 Most of the standard Org-roam features are [should be] still supported. This means two things:
 
@@ -71,7 +71,7 @@ Most of the standard Org-roam features are [should be] still supported. This mea
 
 ## Upstream Org-roam Commits Tested
 
-I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2020-11-08 , I am using it with upstream version  1.2.2 at [commit  `c6797cb` bumped from `f5257ce`](https://github.com/org-roam/org-roam/compare/c6797cb..f5257ce).
+I have been trying to closely trail the upstream Org-roam development; nevertheless, as it is being actively developed (awesome!), Md-roam is usually lagging a bit behind. As of 2021-01-05 , I am using it with upstream version  1.2.3 (MELPA version 20210101.448, latest as at the time of this writing).
 
 I may be behind systematic testing of new and existing functions of Org-roam; nevertheless, my almost-daily usage of the current state of software confirms that Md-roam is useable with main features of Org-roam as at the commit noted above. I tend to do the following operations to see if it "works" for me. Please feel free to use GitHub issues to advise if something important is not working -- I can't promise I can fix everything, but I will try.
 
@@ -79,7 +79,7 @@ I may be behind systematic testing of new and existing functions of Org-roam; ne
 2. Remove the link, and see if it removes the backlink
 3. Create a new note in an external editor (such as iA in my iPad, then sync to my PC where I have Emacs -- real use for me); see if the next DB build adds that new note in. Test this for delete, too.
 
-With this commit, I'm also happy to see that `[[Title of a note]]` can be used to establish a backlink. This comes directly from Org-roam's function around "fuzzy links". It is in a fluid state at the moment (Org-roam project is working to revise how it works). I have noted my findings so far in issues [#37] and [#41]. I will probably wait for the new changes to settle a bit, test them, and write up a bit more documentation in Md-roam for relevant functions.
+With this commit, I'm also happy to see that `[[Title of a note]]` can be used to establish a backlink. This comes directly from Org-roam's function around "fuzzy links". It is in a fluid state at the moment (Org-roam project is working to revise how it works). I have noted my findings so far in issues [#37] and [#41]. I will probably wait for the new changes to settle a bit, test them, and write up a bit more documentation in Md-roam for relevant functions. Currently, Org-roam adds "roam" to this, like `[[roam:Title of a note]]`. It establishes backlinks correctly, but it is not compatible with `markdown-follow-wiki-link-at-point`, so you cannot follow it as a wiki link recognized by Markdown-mode. 
 
 ## Prerequisite
 
