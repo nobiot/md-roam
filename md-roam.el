@@ -435,12 +435,15 @@ It is meant to be used with `advice-add' :around."
 ;;;; Adapt behaviour of org-roam-insert
 ;;;; Add advice to 'org-roam--format-link
 
-(defun md-roam--format-link (target &optional description _type)
-  "Formats a [[wikilink]] for a given file TARGET, link DESCRIPTION.  _TYPE is
-not used for Md-roam.  In Org-roam it differentiates file vs id to construct a
-link Add advice to 'org-roam--format-link' within 'org-roam-insert'.
-Customize `md-roam-file-extension-single' to define the extesion (e.g. md)
-that follows this behaviour."
+(defun md-roam--format-link (target &optional description _type _link-type)
+  "Formats a [[wikilink]] for a given file TARGET, link
+DESCRIPTION.  _TYPE and _LINK-TYPE are not currently used for
+Md-roam.  In Org-roam it differentiates file vs id to construct a
+link.
+
+Add advice to 'org-roam--format-link' within 'org-roam-insert'.
+Customize `md-roam-file-extension-single' to define the
+extesion (e.g. md) that follows this behaviour."
 
   (let* ((target (org-roam-link-get-path target))
          (ext (org-roam--file-name-extension target)))
