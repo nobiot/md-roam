@@ -63,6 +63,11 @@ Most of the standard Org-roam features are [should be] still supported. This mea
 1. You can mix markdown and org files in your org roam directories.
 2. You should be able to use `org` syntax in your `.md` files, such as:
 
+As an example of the "mix-and-match use", here is my knowledge graph of notes that consists of markdown and org files in my `org-roam-directory`:
+
+![Knowledge graph via `org-roam-server`](./images/2021-01-31T133544.png)
+It is generated with using [`org-roam-server`](https://github.com/org-roam/org-roam-server) with custom a custom scheme described [in this GitHub issue](https://github.com/org-roam/org-roam-server/issues/123).
+
 - `#+TITLE: org title` (customisable via `org-roam-title-sources`)
 
 - `[[file:linked-file.org][Note's Title]]` (customisable via [`md-roam-use-org-file-links`](./docs/v1.4.md#add-customising-option-md-roam-use-org-file-links))
