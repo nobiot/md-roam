@@ -5,8 +5,8 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: November 08, 2020
-;; Version: 1.4.2
+;; Modified: March 15, 2021
+;; Version: 1.4.3
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
@@ -375,7 +375,8 @@ When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
                           (list
                            (vector file-path ; file-from
                                    (file-truename
-                                    (expand-file-name link (file-name-directory file-path))) ; file-to
+                                    (expand-file-name (url-filename (url-generic-parse-url link))
+                                                      (file-name-directory file-path))) ; file-to
                                    link-type
                                    (list :content content :point begin-of-block)))))))))
     md-file-links))
