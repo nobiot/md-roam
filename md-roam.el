@@ -6,7 +6,7 @@
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
 ;; Modified: March 15, 2021
-;; Version: 1.4.3
+;; Version: 1.4.1
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
 ;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
