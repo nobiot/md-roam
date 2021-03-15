@@ -1,5 +1,9 @@
 # Changelog
 
+## TBD
+### Fixes
+- (Fix) Extract backlink when section specified in link (issue [#50](https://github.com/nobiot/md-roam/issues/50))
+
 ## 1.4.1-md (2020-11-08)
 
 ### Features
