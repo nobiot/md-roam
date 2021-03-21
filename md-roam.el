@@ -5,11 +5,11 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: March 15, 2021
-;; Version: 1.4.1
+;; Modified: March 20, 2021
+;; Version: 2.0.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
-;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
+;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam 2.0.0))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -57,6 +57,9 @@
 
 (defvar md-roam-regex-title
   "\\(^title:[ \t]*\\)\\(.*\\)")
+
+(defvar md-roam-regex-id
+  "\\(^id:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-aliases
   ;; Assumed to be case insensitive
@@ -234,6 +237,38 @@ It assumes:
     (cond (frontmatter
            (when (string-match md-roam-regex-title frontmatter)
              (list (match-string-no-properties 2 frontmatter)))))))
+
+(defun md-roam-extract-title ()
+  "Extract title from the current buffer (markdown file with YAML frontmatter).
+
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer. No space is allowed before or after the delineator.
+
+It assumes:
+ (1) Current buffer is a markdonw file (but does not check it)
+ (2) It has title in the YAML frontmatter on top of the file
+ (3) The format is 'title: The Document Title'"
+
+    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (when (and frontmatter
+               (string-match md-roam-regex-title frontmatter))
+      (match-string-no-properties 2 frontmatter))))
+
+(defun md-roam-extract-id ()
+  "Extract id from the current buffer (markdown file with YAML frontmatter).
+
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer. No space is allowed before or after the delineator.
+
+It assumes:
+ (1) Current buffer is a markdonw file (but does not check it)
+ (2) It has title in the YAML frontmatter on top of the file
+ (3) The format is 'id: <string>'"
+
+    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (when (and frontmatter
+               (string-match md-roam-regex-id frontmatter))
+      (match-string-no-properties 2 frontmatter))))
 
 (defun org-roam--extract-titles-mdalias ()
   "Return list of aliases from the front matter section of the current buffer.
@@ -525,6 +560,140 @@ This is to simply indicate that md-roam is active. FORCE does not do anythying."
             (buffer-list)))
 
 (advice-add 'org-roam--get-roam-buffers  :override #'md-roam--get-roam-buffers )
+
+(defun md-roam-db-update-file (&optional file-path)
+  "Update Org-roam cache for FILE-PATH.
+If the file does not exist anymore, remove it from the cache.
+If the file exists, update the cache with information."
+  (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+  (let ((content-hash (org-roam-db--file-hash file-path))
+        (db-hash (caar (org-roam-db-query [:select hash :from files
+                                           :where (= file $s1)] file-path))))
+    (unless (string= content-hash db-hash)
+      (org-roam-with-file file-path nil
+        (save-excursion
+          (org-roam-db-clear-file)
+          (org-roam-db-insert-file)
+          (org-roam-db-insert-file-node)
+          (org-roam-db-map-headlines
+           (list #'org-roam-db-insert-node-data
+                 #'org-roam-db-insert-aliases
+                 #'org-roam-db-insert-tags
+                 #'org-roam-db-insert-refs))
+          (org-roam-db-map-links
+           (list #'org-roam-db-insert-link)))))))
+
+(advice-add #'org-roam-db-insert-file-node :around #'md-roam-db-insert-file-node)
+
+(defun md-roam-db-insert-file-node (org-fn)
+  ;; Check the exension. Only when md, use custom logc.
+  (let ((file-path (file-truename (buffer-file-name))))
+    (if (md-roam--markdown-file-p file-path)
+        (progn
+          (md-roam-db--insert-file-node)
+          (markdown-mode))
+      (funcall org-fn))))
+
+(defun md-roam-db--insert-file-node ()
+  ;; This can be gfm-mode
+  ;; Need to remember it somwhere
+  (goto-char (point-min))
+  (when-let ((id (md-roam-extract-id)))
+    (let ((file (buffer-file-name (buffer-base-buffer)))
+          (title (md-roam-extract-title))
+          (pos (point))
+          (level 0)
+          (aliases)
+          (tags)
+          (refs))
+      (org-roam-db-query
+       [:insert :into nodes
+                :values $v1]
+       (vector id file level pos nil nil
+                 nil nil title))
+      (when tags
+        (org-roam-db-query
+         [:insert :into tags
+                  :values $v1]
+         (mapcar (lambda (tag)
+                   (vector file id (substring-no-properties tag)))
+                 tags)))
+      (when aliases
+        (org-roam-db-query
+         [:insert :into aliases
+                  :values $v1]
+         (mapcar (lambda (alias)
+                   (vector file id alias))
+                 (split-string-and-unquote aliases))))
+      (when refs
+        (setq refs (split-string-and-unquote refs))
+        (let (rows)
+          (dolist (ref refs)
+            (if (string-match org-link-plain-re ref)
+                (progn
+                  (push (vector file id (match-string 2 ref) (match-string 1 ref)) rows))
+              (lwarn '(org-roam) :warning
+                     "%s:%s\tInvalid ref %s, skipping..." (buffer-file-name) (point) ref)))
+          (when rows
+            (org-roam-db-query
+             [:insert :into refs
+                      :values $v1]
+             rows)))))))
+
+(advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
+
+(defun md-roam-node-at-point (&optional _assert)
+  "Return the node at point.
+If ASSERT, throw an error."
+  (when (and (buffer-file-name)
+             (md-roam--markdown-file-p (buffer-file-name)))
+    (org-roam-populate (org-roam-node-create :id (md-roam-extract-id)))))
+
+  (if-let ((node (magit-section-case
+                   (org-roam-node-section (oref it node))
+                   (t (let (id)
+                        (org-with-wide-buffer
+                         (while (and (not (setq id (org-id-get)))
+                                     (not (bobp)))
+                           (org-up-heading-or-point-min))
+                         (org-roam-populate (org-roam-node-create :id id))))))))
+      node
+    (when assert
+      (user-error "No node at point"))))
+
+(advice-add #'org-id-get :before-until #'md-roam-id-get)
+
+(defun org-id-get (&optional pom create prefix)
+  "Get the ID property of the entry at point-or-marker POM.
+If POM is nil, refer to the entry at point.
+If the entry does not have an ID, the function returns nil.
+However, when CREATE is non-nil, create an ID if none is present already.
+PREFIX will be passed through to `org-id-new'.
+In any case, the ID of the entry is returned."
+  (org-with-point-at pom
+    (let ((id (org-entry-get nil "ID")))
+      (cond
+       ((and id (stringp id) (string-match "\\S-" id))
+        id)
+       (create
+        (setq id (org-id-new prefix))
+        (org-entry-put pom "ID" id)
+        (org-id-add-location id
+                             (or org-id-overriding-file-name
+                                 (buffer-file-name (buffer-base-buffer))))
+        id)))))
+
+(defun md-roam-id-get (&optional _pom _create _prefix)
+  "Can implement CREATE later."
+  (when (md-roam--markdown-file-p (buffer-file-name))
+    (md-roam-extract-id)))
+
+
+(defun md-roam--markdown-file-p (path)
+  "Check if PATH is pointing to an org file.
+Return t or nil."
+  (let ((ext (org-roam--file-name-extension path)))
+    (string= ext md-roam-file-extension-single)))
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
