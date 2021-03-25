@@ -334,6 +334,8 @@ See the spec at https://yaml.org/spec/1.2/spec.html
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
     ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
     (markdown-mode)
+    ;; run org-roam hooks to re-set after-save-hooks, etc.
+    (run-hooks 'org-roam-find-file-hook)
     ;; This can be gfm-mode
     ;; Need to remember it somwhere
     (goto-char (point-min))
