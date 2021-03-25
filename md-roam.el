@@ -25,9 +25,13 @@
 ;;;
 
 (eval-when-compile (require 'subr-x))
-(require 'dash)
-(require 's)
-(require 'f)
+(require 'org)
+;;(require 'dash)
+;;(require 's)
+;;(require 'f)
+;;(require 'org-roam-mode)
+;;(require 'org-roam-node)
+;;(require 'org-roam-db)
 
 ;;; Md-roam addtional variables
 
@@ -172,6 +176,27 @@ Default is nil. If enabled, Md-roam searches the buffer for links
   :type 'boolean
   :group 'org-roam)
 
+;;; Md-roam commands
+;;;###autoload
+(define-minor-mode md-roam-mode
+  "."
+  :init-value nil
+  :lighter "md-roam"
+  :global t
+  (cond
+   (md-roam-mode
+    ;; Activate
+    (advice-add #'org-roam-db-insert-file-node :before-until #'md-roam-db-insert-file-node)
+    (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
+    (advice-add #'org-id-get :before-until #'md-roam-id-get)
+    (advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links))
+   (t
+    ;; Deactivate
+    (advice-remove org-roam-db-insert-file-node #'md-roam-db-insert-file-node)
+    (advice-remove org-roam-node-at-point #'md-roam-node-at-point)
+    (advice-remove org-id-get #'md-roam-id-get)
+    (advice-remove org-roam-db-map-links #'md-roam-db-map-links))))
+
 ;;; Md-roam functions
 ;;;  Tell if a file is an .org file (or encrypted org file)
 (defun md-roam--org-file-p (path)
@@ -313,13 +338,14 @@ See the spec at https://yaml.org/spec/1.2/spec.html
     ;; Need to remember it somwhere
     (goto-char (point-min))
     (when-let ((id (md-roam-extract-id)))
-      (let ((file (buffer-file-name (buffer-base-buffer)))
-            (title (md-roam-extract-title))
-            (pos (point))
-            (level 0)
-            (aliases)
-            (tags)
-            (refs))
+      (let* ((file (buffer-file-name (buffer-base-buffer)))
+             (title (or (md-roam-extract-title)
+                        (file-relative-name file org-roam-directory)))
+             (pos (point))
+             (level 0)
+             (aliases)
+             (tags)
+             (refs))
         (org-roam-db-query
          [:insert :into nodes
                   :values $v1]
@@ -402,7 +428,8 @@ The destination node needs to be already part of the database"
                               to-file-path))))
               (org-roam-db-query
                [:insert :into links :values $v1]
-               (vector file (point) source dest type properties)))))))))
+               (vector file (point) source dest type properties)))))))
+    t))
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
