@@ -433,5 +433,88 @@ The destination node needs to be already part of the database"
                (vector file (point) source dest type properties)))))))
     t))
 
+;;(add-hook 'org-open-at-point-functions #'org-roam-open-id-at-point)
+
+;;(advice-add #'org-id-update-id-locations :override #'md-roam-id-update-locations)
+
+;; (defun md-roam-id-update-locations (&optional files silent)
+;;   "."
+;;   (interactive)
+;;   (unless org-id-track-globally
+;;     (error "Please turn on `org-id-track-globally' if you want to track IDs"))
+;;   (setq org-id-locations nil)
+;;   (let* ((files
+;;           (delete-dups
+;;            (mapcar #'file-truename
+;;                    (cl-remove-if-not
+;;                     ;; Default `org-id-extra-files' value contains
+;;                     ;; `agenda-archives' symbol.
+;;                     #'stringp
+;;                     (append
+;;                      ;; Agenda files and all associated archives.
+;;                      (org-agenda-files t org-id-search-archives)
+;;                      ;; Explicit extra files.
+;;                      (if (symbolp org-id-extra-files)
+;;                          (symbol-value org-id-extra-files)
+;;                        org-id-extra-files)
+;;                      ;; All files known to have IDs.
+;;                      org-id-files
+;;                      ;; Additional files from function call.
+;;                      files)))))
+;;          (nfiles (length files))
+;;          (id-regexp
+;;           (rx (seq bol (0+ (any "\t ")) ":ID:" (1+ " ") (not (any " ")))))
+;;          (seen-ids nil)
+;;          (ndup 0)
+;;          (i 0))
+;;     (dolist (file files)
+;;       (when (file-exists-p file)
+;;         (unless silent
+;;           (cl-incf i)
+;;           (message "Finding ID locations (%d/%d files): %s" i nfiles file))
+;;         (with-current-buffer (find-file-noselect file t)
+;;           (let ((ids nil)
+;;                 (case-fold-search t))
+;;             (goto-char (point-min))
+;;             (when (md-roam-extract-id) (push (md-roam-extract-id) ids))
+;;             (when ids
+;;               (push (cons (abbreviate-file-name file) ids)
+;;                     org-id-locations)
+;;               (dolist (id ids)
+;;                 (cond
+;;                  ((not (member id seen-ids)) (push id seen-ids))
+;;                  (silent nil)
+;;                  (t
+;;                   (message "Duplicate ID %S" id)
+;;                   (cl-incf ndup)))))))))
+;;     (setq org-id-files (mapcar #'car org-id-locations))
+;;     (org-id-locations-save)
+;;     ;; Now convert to a hash table.
+;;     (setq org-id-locations (org-id-alist-to-hash org-id-locations))
+;;     (when (and (not silent) (> ndup 0))
+;;       (warn "WARNING: %d duplicate IDs found, check *Messages* buffer" ndup))
+;;     (message "%d files scanned, %d files contains IDs, and %d IDs found."
+;;              nfiles (length org-id-files) (hash-table-count org-id-locations))
+;;     org-id-locations))
+
+;; ;; (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
+
+;; (defun md-roam-find-id-in-file (id file &optional markerp)
+;;   "Return the position of the entry ID in FILE.
+;; If that files does not exist, or if it does not contain this ID,
+;; return nil.
+;; The position is returned as a cons cell (file-name . position).  With
+;; optional argument MARKERP, return the position as a new marker."
+;;   (when (and file
+;;              (file-exists-p file)
+;;              (md-roam--markdown-file-p file))
+;;     (let ((pos 1)
+;;           (buf (find-file-noselect file)))
+;;       (with-current-buffer buf
+;;         (when pos
+;;           (if markerp
+;;               (move-marker (make-marker) pos buf)
+;;             (cons file pos)))))))
+
 (provide 'md-roam)
 ;;; md-roam.el ends here
