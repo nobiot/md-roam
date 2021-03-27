@@ -21,6 +21,10 @@
 ;;  Refer to README in the GitHub / GitLab repo for instruction, configuraiton,
 ;;  and features supported.
 ;;
+;;  With V2, bullet list with asterisk "*" conflicts with Org-mode's syntax
+;;  for headlines. It does not correctly save the buffer when used in markdown
+;;  file in `org-roam-directory'.
+;;
 ;;; Code:
 ;;;
 
@@ -189,13 +193,19 @@ Default is nil. If enabled, Md-roam searches the buffer for links
     (advice-add #'org-roam-db-insert-file-node :before-until #'md-roam-db-insert-file-node)
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
-    (advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links))
+    (advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links)
+    (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
+    (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
+    (add-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))
    (t
     ;; Deactivate
     (advice-remove org-roam-db-insert-file-node #'md-roam-db-insert-file-node)
     (advice-remove org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove org-id-get #'md-roam-id-get)
-    (advice-remove org-roam-db-map-links #'md-roam-db-map-links))))
+    (advice-remove org-roam-db-map-links #'md-roam-db-map-links)
+    (advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file)
+    (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
+    (remove-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))))
 
 ;;; Md-roam functions
 ;;;  Tell if a file is an .org file (or encrypted org file)
@@ -327,8 +337,6 @@ See the spec at https://yaml.org/spec/1.2/spec.html
 ;;           (org-roam-db-map-links
 ;;            (list #'org-roam-db-insert-link)))))))
 
-(advice-add #'org-roam-db-insert-file-node :before-until #'md-roam-db-insert-file-node)
-
 (defun md-roam-db-insert-file-node ()
   ;; Check the exension. Only when md, use custom logc.
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
@@ -384,16 +392,12 @@ See the spec at https://yaml.org/spec/1.2/spec.html
       ;; Return t for :before-until
       t)))
 
-(advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
-
 (defun md-roam-node-at-point (&optional _assert)
   "Return the node at point.
 If ASSERT, throw an error."
   (when (and (buffer-file-name (buffer-base-buffer))
              (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
     (org-roam-populate (org-roam-node-create :id (md-roam-extract-id)))))
-
-(advice-add #'org-id-get :before-until #'md-roam-id-get)
 
 (defun md-roam-id-get (&optional _pom _create _prefix)
   "Can implement CREATE later."
@@ -406,9 +410,7 @@ Return t or nil."
   (let ((ext (org-roam--file-name-extension path)))
     (string= ext md-roam-file-extension-single)))
 
-(advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links)
-
-(defun md-roam-db-map-links (_fns)
+(defun md-roam-db-map-links-file-link (_fns)
   "Extract links in the form of [[link]]
 wiki-link destination is assumed to be under the same directory as the source file.
 The destination node needs to be already part of the database"
@@ -433,88 +435,101 @@ The destination node needs to be already part of the database"
                (vector file (point) source dest type properties)))))))
     t))
 
-;;(add-hook 'org-open-at-point-functions #'org-roam-open-id-at-point)
 
-;;(advice-add #'org-id-update-id-locations :override #'md-roam-id-update-locations)
+(defun md-roam-db-map-links (_fns)
+  "Extract links in the form of [[ID]]."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (save-excursion
+      (let ((file (buffer-file-name (buffer-base-buffer)))
+            (type "id")
+            (source (md-roam-extract-id))
+            (properties (list :outline nil)))
+        (when source
+          (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
+            (when-let*
+                ((dest (match-string-no-properties 1)))
+              (org-roam-db-query
+               [:insert :into links :values $v1]
+               (vector file (point) source dest type properties)))))))
+    t))
 
-;; (defun md-roam-id-update-locations (&optional files silent)
-;;   "."
-;;   (interactive)
-;;   (unless org-id-track-globally
-;;     (error "Please turn on `org-id-track-globally' if you want to track IDs"))
-;;   (setq org-id-locations nil)
-;;   (let* ((files
-;;           (delete-dups
-;;            (mapcar #'file-truename
-;;                    (cl-remove-if-not
-;;                     ;; Default `org-id-extra-files' value contains
-;;                     ;; `agenda-archives' symbol.
-;;                     #'stringp
-;;                     (append
-;;                      ;; Agenda files and all associated archives.
-;;                      (org-agenda-files t org-id-search-archives)
-;;                      ;; Explicit extra files.
-;;                      (if (symbolp org-id-extra-files)
-;;                          (symbol-value org-id-extra-files)
-;;                        org-id-extra-files)
-;;                      ;; All files known to have IDs.
-;;                      org-id-files
-;;                      ;; Additional files from function call.
-;;                      files)))))
-;;          (nfiles (length files))
-;;          (id-regexp
-;;           (rx (seq bol (0+ (any "\t ")) ":ID:" (1+ " ") (not (any " ")))))
-;;          (seen-ids nil)
-;;          (ndup 0)
-;;          (i 0))
-;;     (dolist (file files)
-;;       (when (file-exists-p file)
-;;         (unless silent
-;;           (cl-incf i)
-;;           (message "Finding ID locations (%d/%d files): %s" i nfiles file))
-;;         (with-current-buffer (find-file-noselect file t)
-;;           (let ((ids nil)
-;;                 (case-fold-search t))
-;;             (goto-char (point-min))
-;;             (when (md-roam-extract-id) (push (md-roam-extract-id) ids))
-;;             (when ids
-;;               (push (cons (abbreviate-file-name file) ids)
-;;                     org-id-locations)
-;;               (dolist (id ids)
-;;                 (cond
-;;                  ((not (member id seen-ids)) (push id seen-ids))
-;;                  (silent nil)
-;;                  (t
-;;                   (message "Duplicate ID %S" id)
-;;                   (cl-incf ndup)))))))))
-;;     (setq org-id-files (mapcar #'car org-id-locations))
-;;     (org-id-locations-save)
-;;     ;; Now convert to a hash table.
-;;     (setq org-id-locations (org-id-alist-to-hash org-id-locations))
-;;     (when (and (not silent) (> ndup 0))
-;;       (warn "WARNING: %d duplicate IDs found, check *Messages* buffer" ndup))
-;;     (message "%d files scanned, %d files contains IDs, and %d IDs found."
-;;              nfiles (length org-id-files) (hash-table-count org-id-locations))
-;;     org-id-locations))
 
-;; ;; (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
+(defun md-roam-open-id-at-point ()
+  "Open link, timestamp, footnote or tags at point.
+The function tries to open ID-links with Org-roam’s database
+before falling back to the default behaviour of
+`org-open-at-point'. It also asks the user whether to parse
+`org-id-files' when an ID is not found because it might be a slow
+process.
+This function hooks into `org-open-at-point' via
+`org-open-at-point-functions'."
+  (when (org-roam--org-roam-file-p)
+    (let* ((context (org-element-context))
+           (type (org-element-property :type context))
+           (id (org-element-property :path context)))
+      (when (string= type "id")
+        (find-file
+         (caar (org-roam-db-query
+                [:select [file] :from nodes :where (= id $s1)] id)))))))
 
-;; (defun md-roam-find-id-in-file (id file &optional markerp)
-;;   "Return the position of the entry ID in FILE.
-;; If that files does not exist, or if it does not contain this ID,
-;; return nil.
-;; The position is returned as a cons cell (file-name . position).  With
-;; optional argument MARKERP, return the position as a new marker."
-;;   (when (and file
-;;              (file-exists-p file)
-;;              (md-roam--markdown-file-p file))
-;;     (let ((pos 1)
-;;           (buf (find-file-noselect file)))
-;;       (with-current-buffer buf
-;;         (when pos
-;;           (if markerp
-;;               (move-marker (make-marker) pos buf)
-;;             (cons file pos)))))))
+(defun md-roam-find-id-in-file (id file &optional markerp)
+  "Return the position of the entry ID in FILE.
+If that files does not exist, or if it does not contain this ID,
+return nil.
+The position is returned as a cons cell (file-name . position).  With
+optional argument MARKERP, return the position as a new marker."
+  (when (and file
+             (file-exists-p file)
+             (md-roam--markdown-file-p file))
+    (let ((pos 1)
+          (buf (find-file-noselect file)))
+      (with-current-buffer buf
+        (when pos
+          (if markerp
+              (move-marker (make-marker) pos buf)
+            (cons file pos)))))))
+
+(defun md-roam-node-insert (&optional filter-fn)
+  "Find an Org-roam file, and insert a relative org link to it at point.
+Return selected file if it exists.
+If LOWERCASE is non-nil, downcase the link description.
+FILTER-FN is the name of a function to apply on the candidates
+which takes as its argument an alist of path-completions."
+  (interactive)
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (unwind-protect
+        ;; Group functions together to avoid inconsistent state on quit
+        (atomic-change-group
+          (let* (region-text
+                 beg end
+                 (_ (when (region-active-p)
+                      (setq beg (set-marker (make-marker) (region-beginning)))
+                      (setq end (set-marker (make-marker) (region-end)))
+                      (setq region-text (org-link-display-format (buffer-substring-no-properties beg end)))))
+                 (node (org-roam-node-read region-text filter-fn))
+                 (description (or region-text
+                                  (org-roam-node-title node))))
+            (if (org-roam-node-id node)
+                (progn
+                  (when region-text
+                    (delete-region beg end)
+                    (set-marker beg nil)
+                    (set-marker end nil))
+                  ;; Adapt for Markdown-mode Wikisyntax
+                  (insert (concat "[[" (org-roam-node-id node) "]] " description)))
+              (let ((org-roam-capture--info
+                     `((title . ,(org-roam-node-title node))
+                       (slug . ,(funcall org-roam-title-to-slug-function (org-roam-node-title node)))))
+                    (org-roam-capture--context 'title))
+                (setq org-roam-capture-additional-template-props
+                      (list :region (when (and beg end)
+                                      (cons beg end))
+                            :insert-at (point-marker)
+                            :link-description description
+                            :finalize 'insert-link))
+                (org-roam-capture--capture)))))
+      (deactivate-mark))
+    t))
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
