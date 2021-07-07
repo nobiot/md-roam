@@ -536,7 +536,7 @@ which takes as its argument an alist of path-completions."
 (defun md-roam-db-map-headlines (_fns)
   "This is necessary as Org-roam uses `org-with-point-at'.
 It assumes the file and syntax used are Org and often causes
-error when syntax conflicts; e.g. the use of "*" as headline vs
+error when syntax conflicts; e.g. the use of \"*\" as headline vs
 list."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
   ;; do nothing if markdown)
