@@ -465,7 +465,7 @@ before falling back to the default behaviour of
 process.
 This function hooks into `org-open-at-point' via
 `org-open-at-point-functions'."
-  (when (org-roam--org-roam-file-p)
+  (when (org-roam-file-p)
     (let* ((context (org-element-context))
            (type (org-element-property :type context))
            (id (org-element-property :path context)))
