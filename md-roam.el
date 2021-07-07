@@ -196,6 +196,7 @@ Default is nil. If enabled, Md-roam searches the buffer for links
     (advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links)
     (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
     (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
+    (advice-add #'org-roam-db-map-headlines :before-until #'md-roam-db-map-headlines)
     (add-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))
    (t
     ;; Deactivate
@@ -205,6 +206,7 @@ Default is nil. If enabled, Md-roam searches the buffer for links
     (advice-remove org-roam-db-map-links #'md-roam-db-map-links)
     (advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
+    (advice-remove #'org-roam-db-map-headlines #'md-roam-db-map-headlines)
     (remove-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))))
 
 ;;; Md-roam functions
@@ -360,7 +362,7 @@ See the spec at https://yaml.org/spec/1.2/spec.html
          [:insert :into nodes
                   :values $v1]
          (vector id file level pos nil nil
-                 nil nil title))
+                 nil nil title nil nil))
         (when tags
           (org-roam-db-query
            [:insert :into tags
@@ -373,22 +375,24 @@ See the spec at https://yaml.org/spec/1.2/spec.html
            [:insert :into aliases
                     :values $v1]
            (mapcar (lambda (alias)
-                     (vector file id alias))
+                     (vector id alias))
                    (split-string-and-unquote aliases))))
-        (when refs
-          (setq refs (split-string-and-unquote refs))
-          (let (rows)
-            (dolist (ref refs)
-              (if (string-match org-link-plain-re ref)
-                  (progn
-                    (push (vector file id (match-string 2 ref) (match-string 1 ref)) rows))
-                (lwarn '(org-roam) :warning
-                       "%s:%s\tInvalid ref %s, skipping..." (buffer-file-name) (point) ref)))
-            (when rows
-              (org-roam-db-query
-               [:insert :into refs
-                        :values $v1]
-               rows)))))
+          (when refs
+            (setq refs (split-string-and-unquote refs))
+            (let (rows)
+              (dolist (ref refs)
+                (if (string-match org-link-plain-re ref)
+                    (progn
+                      (push (vector id (match-string 2 ref)
+                                    (match-string 1 ref)) rows))
+                  (lwarn '(org-roam) :warning
+                         "%s:%s\tInvalid ref %s, skipping..."
+                         (buffer-file-name) (point) ref)))
+              (when rows
+                (org-roam-db-query
+                 [:insert :into refs
+                  :values $v1]
+                 rows)))))
       ;; Return t for :before-until
       t)))
 
@@ -432,9 +436,8 @@ The destination node needs to be already part of the database"
                               to-file-path))))
               (org-roam-db-query
                [:insert :into links :values $v1]
-               (vector file (point) source dest type properties)))))))
+               (vector (point) source dest type properties)))))))
     t))
-
 
 (defun md-roam-db-map-links (_fns)
   "Extract links in the form of [[ID]]."
@@ -450,9 +453,8 @@ The destination node needs to be already part of the database"
                 ((dest (match-string-no-properties 1)))
               (org-roam-db-query
                [:insert :into links :values $v1]
-               (vector file (point) source dest type properties)))))))
+               (vector (point) source dest type properties)))))))
     t))
-
 
 (defun md-roam-open-id-at-point ()
   "Open link, timestamp, footnote or tags at point.
@@ -531,5 +533,13 @@ which takes as its argument an alist of path-completions."
       (deactivate-mark))
     t))
 
+(defun md-roam-db-map-headlines (_fns)
+  "This is necessary as Org-roam uses `org-with-point-at'.
+It assumes the file and syntax used are Org and often causes
+error when syntax conflicts; e.g. the use of "*" as headline vs
+list."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
+  ;; do nothing if markdown)
+  t)
 (provide 'md-roam)
 ;;; md-roam.el ends here
