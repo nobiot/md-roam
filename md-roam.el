@@ -200,10 +200,10 @@ Default is nil. If enabled, Md-roam searches the buffer for links
     (add-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))
    (t
     ;; Deactivate
-    (advice-remove org-roam-db-insert-file-node #'md-roam-db-insert-file-node)
-    (advice-remove org-roam-node-at-point #'md-roam-node-at-point)
-    (advice-remove org-id-get #'md-roam-id-get)
-    (advice-remove org-roam-db-map-links #'md-roam-db-map-links)
+    (advice-remove #'org-roam-db-insert-file-node #'md-roam-db-insert-file-node)
+    (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
+    (advice-remove #'org-id-get #'md-roam-id-get)
+    (advice-remove #'org-roam-db-map-links #'md-roam-db-map-links)
     (advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
     (advice-remove #'org-roam-db-map-headlines #'md-roam-db-map-headlines)
