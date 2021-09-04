@@ -161,8 +161,7 @@ From commit `5f24103`, Md-roam uses `org-roam-title-sources` variable to extract
 
 ## Doom
 
-I use [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources).
-With it, you can use GitHub, GitLab (mirror) or clone this repo to your local, and add respective one of these below. Don't forget to `doom sync`.
+For [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources) you can do one of the ways below in `package.el` and add required config to `config.el`. Don't forget to `doom sync`.
 
 ```
 ;in your package.el
