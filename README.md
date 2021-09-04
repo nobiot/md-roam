@@ -1,5 +1,10 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 
+## Notes on Org-roam V2
+
+As of 17 Jul 2021, Version 2 (V2) is the current version of Org-roam. Both MELPA and MELPA-Stable have this version of Org-roam. It will be markedly different from V1 for both its initial setup and daily usage. 
+
+As of 4 Sep 2021, I have not updated my Md-roam to be compatible with V2. There is a branch named v2 in this repo; however, it does not work with the current Org-roam. I will come back to it once I have more time. 
 
 ## Synopsis
 
