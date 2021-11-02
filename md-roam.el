@@ -190,23 +190,19 @@ Default is nil. If enabled, Md-roam searches the buffer for links
   (cond
    (md-roam-mode
     ;; Activate
-    (advice-add #'org-roam-db-insert-file-node :before-until #'md-roam-db-insert-file-node)
+    (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
-    (advice-add #'org-roam-db-map-links :before-until #'md-roam-db-map-links)
     (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
     (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
-    (advice-add #'org-roam-db-map-headlines :before-until #'md-roam-db-map-headlines)
     (add-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))
    (t
     ;; Deactivate
-    (advice-remove #'org-roam-db-insert-file-node #'md-roam-db-insert-file-node)
+    (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove #'org-id-get #'md-roam-id-get)
-    (advice-remove #'org-roam-db-map-links #'md-roam-db-map-links)
     (advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
-    (advice-remove #'org-roam-db-map-headlines #'md-roam-db-map-headlines)
     (remove-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))))
 
 ;;; Md-roam functions
@@ -317,84 +313,98 @@ See the spec at https://yaml.org/spec/1.2/spec.html
       (let ((items (split-string-and-unquote
                     (match-string-no-properties 2 seq) separator)))
         (mapcar #'md-roam--remove-single-quotes items)))))
-;; (defun md-roam-db-update-file (&optional file-path)
-;;   "Update Org-roam cache for FILE-PATH.
-;; If the file does not exist anymore, remove it from the cache.
-;; If the file exists, update the cache with information."
-;;   (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
-;;   (let ((content-hash (org-roam-db--file-hash file-path))
-;;         (db-hash (caar (org-roam-db-query [:select hash :from files
-;;                                            :where (= file $s1)] file-path))))
-;;     (unless (string= content-hash db-hash)
-;;       (org-roam-with-file file-path nil
-;;         (save-excursion
-;;           (org-roam-db-clear-file)
-;;           (org-roam-db-insert-file)
-;;           (org-roam-db-insert-file-node)
-;;           (org-roam-db-map-headlines
-;;            (list #'org-roam-db-insert-node-data
-;;                  #'org-roam-db-insert-aliases
-;;                  #'org-roam-db-insert-tags
-;;                  #'org-roam-db-insert-refs))
-;;           (org-roam-db-map-links
-;;            (list #'org-roam-db-insert-link)))))))
+
+;;;; Synchronization
+(defun md-roam-db-update-file (&optional file-path)
+  "Update Org-roam cache for FILE-PATH.
+If the file does not exist anymore, remove it from the cache.
+If the file exists, update the cache with information.
+
+`org-element-parse-buffer' cannot be used for markdown files; it
+causes infinite loop."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+    (let ((content-hash (org-roam-db--file-hash file-path))
+          (db-hash (caar (org-roam-db-query [:select hash :from files
+						     :where (= file $s1)] file-path)))
+          info)
+      (unless (string= content-hash db-hash)
+	(org-roam-with-file file-path nil
+	  (emacsql-with-transaction
+	   (org-roam-db)
+	   (save-excursion
+	     ;; (org-set-regexps-and-options 'tags-only)
+	     (org-roam-db-clear-file)
+	     (org-roam-db-insert-file)
+	     (md-roam-db-insert-file-node)
+	     ;; (setq org-outline-path-cache nil)
+	     ;; (org-roam-db-map-nodes
+	     ;;  (list #'org-roam-db-insert-node-data
+	     ;;        #'org-roam-db-insert-aliases
+	     ;;        #'org-roam-db-insert-tags
+	     ;;        #'org-roam-db-insert-refs))
+	     ;; (setq org-outline-path-cache nil)
+	     ;; (setq info (org-element-parse-buffer))
+	     (md-roam-db-map-links)
+	     ;; (when (fboundp 'org-cite-insert)
+	     ;;   (require 'oc)             ;ensure feature is loaded
+	     ;;   (org-roam-db-map-citations
+	     ;;    info
+	     ;;    (list #'org-roam-db-insert-citation)))
+	     )))))
+    ;; For before-until advice
+    t))
 
 (defun md-roam-db-insert-file-node ()
   ;; Check the exension. Only when md, use custom logc.
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
-    (markdown-mode)
-    ;; run org-roam hooks to re-set after-save-hooks, etc.
-    (run-hooks 'org-roam-find-file-hook)
-    ;; This can be gfm-mode
-    ;; Need to remember it somwhere
-    (goto-char (point-min))
-    (when-let ((id (md-roam-extract-id)))
-      (let* ((file (buffer-file-name (buffer-base-buffer)))
-             (title (or (md-roam-extract-title)
-                        (file-relative-name file org-roam-directory)))
-             (pos (point))
-             (level 0)
-             (aliases)
-             (tags)
-             (refs))
+  ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
+  (markdown-mode)
+  ;; run org-roam hooks to re-set after-save-hooks, etc.
+  (run-hooks 'org-roam-find-file-hook)
+  ;; This can be gfm-mode
+  ;; Need to remember it somwhere
+  (goto-char (point-min))
+  (when-let ((id (md-roam-extract-id)))
+    (let* ((file (buffer-file-name (buffer-base-buffer)))
+           (title (or (md-roam-extract-title)
+                      (file-relative-name file org-roam-directory)))
+           (pos (point))
+	   (todo nil)
+	   (priority nil)
+           (scheduled nil)
+           (deadline nil)
+           (level 0)
+           (aliases)
+           (tags nil)
+	   (properties nil)
+           (olp nil))
+      (org-roam-db-query!
+       (lambda (err)
+         (lwarn 'org-roam :warning "%s for %s (%s) in %s"
+                (error-message-string err)
+                title id file))
+       [:insert :into nodes
+                :values $v1]
+       (vector id file level pos todo priority
+               scheduled deadline title properties olp))
+      ;; For now, tags are always nil
+      (when tags
         (org-roam-db-query
-         [:insert :into nodes
-                  :values $v1]
-         (vector id file level pos nil nil
-                 nil nil title nil nil))
-        (when tags
-          (org-roam-db-query
-           [:insert :into tags
-                    :values $v1]
-           (mapcar (lambda (tag)
-                     (vector file id (substring-no-properties tag)))
-                   tags)))
-        (when aliases
-          (org-roam-db-query
-           [:insert :into aliases
-                    :values $v1]
-           (mapcar (lambda (alias)
-                     (vector id alias))
-                   (split-string-and-unquote aliases))))
-          (when refs
-            (setq refs (split-string-and-unquote refs))
-            (let (rows)
-              (dolist (ref refs)
-                (if (string-match org-link-plain-re ref)
-                    (progn
-                      (push (vector id (match-string 2 ref)
-                                    (match-string 1 ref)) rows))
-                  (lwarn '(org-roam) :warning
-                         "%s:%s\tInvalid ref %s, skipping..."
-                         (buffer-file-name) (point) ref)))
-              (when rows
-                (org-roam-db-query
-                 [:insert :into refs
-                  :values $v1]
-                 rows)))))
-      ;; Return t for :before-until
-      t)))
+         [:insert :into tags
+		  :values $v1]
+         (mapcar (lambda (tag)
+                   (vector id (substring-no-properties tag)))
+                 tags)))
+      (md-roam-db-insert-aliases)
+      (md-roam-db-insert-refs))))
+
+(defun md-roam-db-insert-aliases ()
+  "Insert aliases for node at point into Org-roam cache."
+  )
+
+(defun md-roam-db-insert-refs ()
+  "Insert refs for node at point into Org-roam cache."
+  )
 
 (defun md-roam-node-at-point (&optional _assert)
   "Return the node at point.
@@ -415,7 +425,8 @@ Return t or nil."
     (string= ext md-roam-file-extension-single)))
 
 (defun md-roam-db-map-links-file-link (_fns)
-  "Extract links in the form of [[link]]
+  "NOT USED?
+Extract links in the form of [[link]]
 wiki-link destination is assumed to be under the same directory as the source file.
 The destination node needs to be already part of the database"
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
@@ -439,22 +450,20 @@ The destination node needs to be already part of the database"
                (vector (point) source dest type properties)))))))
     t))
 
-(defun md-roam-db-map-links (_fns)
+(defun md-roam-db-map-links ()
   "Extract links in the form of [[ID]]."
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    (save-excursion
-      (let ((file (buffer-file-name (buffer-base-buffer)))
-            (type "id")
-            (source (md-roam-extract-id))
-            (properties (list :outline nil)))
-        (when source
-          (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-            (when-let*
-                ((dest (match-string-no-properties 1)))
-              (org-roam-db-query
-               [:insert :into links :values $v1]
-               (vector (point) source dest type properties)))))))
-    t))
+  (save-excursion
+    (let ((file (buffer-file-name (buffer-base-buffer)))
+          (type "id")
+          (source (md-roam-extract-id))
+          (properties (list :outline nil)))
+      (when source
+        (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
+          (when-let*
+              ((dest (match-string-no-properties 1)))
+            (org-roam-db-query
+             [:insert :into links :values $v1]
+             (vector (point) source dest type properties))))))))			  
 
 (defun md-roam-open-id-at-point ()
   "Open link, timestamp, footnote or tags at point.
@@ -533,13 +542,5 @@ which takes as its argument an alist of path-completions."
       (deactivate-mark))
     t))
 
-(defun md-roam-db-map-headlines (_fns)
-  "This is necessary as Org-roam uses `org-with-point-at'.
-It assumes the file and syntax used are Org and often causes
-error when syntax conflicts; e.g. the use of \"*\" as headline vs
-list."
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
-  ;; do nothing if markdown)
-  t)
 (provide 'md-roam)
 ;;; md-roam.el ends here
