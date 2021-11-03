@@ -232,7 +232,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
     (when-let
         ((startpoint (re-search-forward
                       md-roam-regex-yaml-font-matter-beginning 4 t 1))
-         ;The beginning needs to be in the beginning of buffer
+                                        ;The beginning needs to be in the beginning of buffer
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       (buffer-substring-no-properties startpoint endpoint))))
@@ -247,7 +247,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
     (when-let
         ((startpoint (re-search-forward
                       md-roam-regex-yaml-font-matter-beginning 4 t 1))
-         ;The beginning needs to be in the beginning of buffer
+                                        ;The beginning needs to be in the beginning of buffer
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       endpoint)))
@@ -263,7 +263,7 @@ It assumes:
  (2) It has title in the YAML frontmatter on top of the file
  (3) The format is 'title: The Document Title'"
 
-    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+  (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (when (and frontmatter
                (string-match md-roam-regex-title frontmatter))
       (match-string-no-properties 2 frontmatter))))
@@ -279,7 +279,7 @@ It assumes:
  (2) It has title in the YAML frontmatter on top of the file
  (3) The format is 'id: <string>'"
 
-    (let ((frontmatter (md-roam-get-yaml-front-matter)))
+  (let ((frontmatter (md-roam-get-yaml-front-matter)))
     (when (and frontmatter
                (string-match md-roam-regex-id frontmatter))
       (match-string-no-properties 2 frontmatter))))
@@ -299,17 +299,17 @@ SEQ = sequence, it's an array. At the moment, only the flow style works.
 See the spec at https://yaml.org/spec/1.2/spec.html
   Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
 
-;; The items in the sequence (array) can be separated by different ways.
-;;   1. Spaces like the example from the spec above
-;;   2. Single-quotes 'item'
-;;   3. Double-quotes "item"
-;; Do not escape the singe- or double-quotations. At the moment, that does
-;; lead to error
+  ;; The items in the sequence (array) can be separated by different ways.
+  ;;   1. Spaces like the example from the spec above
+  ;;   2. Single-quotes 'item'
+  ;;   3. Double-quotes "item"
+  ;; Do not escape the singe- or double-quotations. At the moment, that does
+  ;; lead to error
 
-;; The regexp is meant to to match YAML sequence formatted in the flow style.
-;; At the moment, only the flow style is considered. The number of spaces
-;; between the squeare bracket and the first/last item should not matter.
-;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
+  ;; The regexp is meant to to match YAML sequence formatted in the flow style.
+  ;; At the moment, only the flow style is considered. The number of spaces
+  ;; between the squeare bracket and the first/last item should not matter.
+  ;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
 
   (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
         (separator ",\s*"))
@@ -536,10 +536,10 @@ which takes as its argument an alist of path-completions."
   "`markdown-follow-wiki-link'"
   (when (org-roam-file-p (buffer-file-name (buffer-base-buffer)))
     (if-let* ((node (or (org-roam-node-from-title-or-alias name)
-			  (org-roam-node-create :id name)))
-		(node-populated (org-roam-populate node))
-		(file (org-roam-node-file node-populated)))
-	(when file (find-file file))
+                        (org-roam-node-create :id name)))
+              (node-populated (org-roam-populate node))
+              (file (org-roam-node-file node-populated)))
+        (when file (find-file file))
       (message (format "No Org-roam node found for \"%s\"" name)))
     t))
 
