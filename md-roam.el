@@ -322,38 +322,44 @@ If the file exists, update the cache with information.
 
 `org-element-parse-buffer' cannot be used for markdown files; it
 causes infinite loop."
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
-    (let ((content-hash (org-roam-db--file-hash file-path))
-          (db-hash (caar (org-roam-db-query [:select hash :from files
-						     :where (= file $s1)] file-path)))
-          info)
-      (unless (string= content-hash db-hash)
-	(org-roam-with-file file-path nil
-	  (emacsql-with-transaction
-	   (org-roam-db)
-	   (save-excursion
-	     ;; (org-set-regexps-and-options 'tags-only)
-	     (org-roam-db-clear-file)
-	     (org-roam-db-insert-file)
-	     (md-roam-db-insert-file-node)
-	     ;; (setq org-outline-path-cache nil)
-	     ;; (org-roam-db-map-nodes
-	     ;;  (list #'org-roam-db-insert-node-data
-	     ;;        #'org-roam-db-insert-aliases
-	     ;;        #'org-roam-db-insert-tags
-	     ;;        #'org-roam-db-insert-refs))
-	     ;; (setq org-outline-path-cache nil)
-	     ;; (setq info (org-element-parse-buffer))
-	     (md-roam-db-map-links)
-	     ;; (when (fboundp 'org-cite-insert)
-	     ;;   (require 'oc)             ;ensure feature is loaded
-	     ;;   (org-roam-db-map-citations
-	     ;;    info
-	     ;;    (list #'org-roam-db-insert-citation)))
-	     )))))
+  (when (md-roam--markdown-file-p (or file-path (buffer-file-name (buffer-base-buffer))))
+    ;; If `emacsql-with-transaction' macro is used within this function, you get
+    ;; invalid function `emacsq-with-transaction' error.  This seems to be
+    ;; because this function is called within advice.  Calling another function
+    ;; and then call the macro in it seems to have no problem.
+    (md-roam-test (or file-path (buffer-file-name (buffer-base-buffer))))
     ;; For before-until advice
     t))
+
+(defun md-roam-test (&optional file-path)
+  (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+  (let ((content-hash (org-roam-db--file-hash file-path))
+        (db-hash (caar (org-roam-db-query [:select hash :from files
+						   :where (= file $s1)] file-path)))
+        info)
+    (unless (string= content-hash db-hash)
+      (org-roam-with-file file-path nil
+	(emacsql-with-transaction (org-roam-db)
+	  (save-excursion
+	    ;; (org-set-regexps-and-options 'tags-only)
+	    (org-roam-db-clear-file)
+	    (org-roam-db-insert-file)
+	    (md-roam-db-insert-file-node)
+	    ;; (setq org-outline-path-cache nil)
+	    ;; (org-roam-db-map-nodes
+	    ;;  (list #'org-roam-db-insert-node-data
+	    ;;        #'org-roam-db-insert-aliases
+	    ;;        #'org-roam-db-insert-tags
+	    ;;        #'org-roam-db-insert-refs))
+	    ;; (setq org-outline-path-cache nil)
+	    ;; (setq info (org-element-parse-buffer))
+	    (md-roam-db-map-links)
+	    ;; (when (fboundp 'org-cite-insert)
+	    ;;   (require 'oc)             ;ensure feature is loaded
+	    ;;   (org-roam-db-map-citations
+	    ;;    info
+	    ;;    (list #'org-roam-db-insert-citation)))
+	    ))))))
 
 (defun md-roam-db-insert-file-node ()
   ;; Check the exension. Only when md, use custom logc.
