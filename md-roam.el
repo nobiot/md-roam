@@ -5,11 +5,11 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
 ;; Maintainer: Noboru Ota <me@nobiot.com>
 ;; Created: April 15, 2020
-;; Modified: March 20, 2021
+;; Modified: November 3, 2021
 ;; Version: 2.0.0
 ;; Keywords:
 ;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
-;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam 2.0.0))
+;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam 2.1.0))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -71,7 +71,9 @@
 
 (defvar md-roam-regex-ref-key
   ;; Assumed to be case insensitive
-  "\\(^.*ROAM_KEY:[ \t]*\\)\\(.*\\)")
+  ;; TODO
+  ;; At the moment, only one ref, I think
+  "\\(^.*ROAM_REFS:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-headline
   (concat "^\s*\n"                   ;exludes YAML front matter
@@ -183,7 +185,9 @@ Default is nil. If enabled, Md-roam searches the buffer for links
 ;;; Md-roam commands
 ;;;###autoload
 (define-minor-mode md-roam-mode
-  "."
+  "Md-roam mode needs to be turned before `org-roam-db-sync'.
+It is recommended it be turned on before
+`org-roam-db-autosync-mode'."
   :init-value nil
   :lighter "md-roam"
   :global t
@@ -430,32 +434,6 @@ Return t or nil."
   (let ((ext (org-roam--file-name-extension path)))
     (string= ext md-roam-file-extension-single)))
 
-(defun md-roam-db-map-links-file-link (_fns)
-  "NOT USED?
-Extract links in the form of [[link]]
-wiki-link destination is assumed to be under the same directory as the source file.
-The destination node needs to be already part of the database"
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    (save-excursion
-      (let ((file (buffer-file-name (buffer-base-buffer)))
-            (type "id")
-            (source (md-roam-extract-id))
-            (properties (list :outline nil)))
-        (when source
-          (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-            (when-let*
-                ((to-file-name (concat (match-string-no-properties 1)
-                                       "." md-roam-file-extension-single))
-                 (to-file-path (expand-file-name to-file-name
-                                                 (file-name-directory file)))
-                 (dest (caar (org-roam-db-query
-                              [:select [id] :from nodes :where (= file $s1)]
-                              to-file-path))))
-              (org-roam-db-query
-               [:insert :into links :values $v1]
-               (vector (point) source dest type properties)))))))
-    t))
-
 (defun md-roam-db-map-links ()
   "Extract links in the form of [[ID]]."
   (save-excursion
@@ -532,7 +510,7 @@ which takes as its argument an alist of path-completions."
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  ;; Adapt for Markdown-mode Wikisyntax
+                  ;; Adapt for Markdown-mode Wiki syntax
                   (insert (concat "[[" (org-roam-node-id node) "]] " description)))
               (let ((org-roam-capture--info
                      `((title . ,(org-roam-node-title node))
@@ -546,6 +524,23 @@ which takes as its argument an alist of path-completions."
                             :finalize 'insert-link))
                 (org-roam-capture--capture)))))
       (deactivate-mark))
+    t))
+
+(advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
+
+(defvar md-roam-wiki-link-type 'id)
+(setq md-roam-wiki-link-type 'title-or-alias)
+(setq md-roam-wiki-link-type 'id)
+
+(defun md-roam-follow-wiki-link (name &optional other)
+  "`markdown-follow-wiki-link'"
+  (when (org-roam-file-p (buffer-file-name (buffer-base-buffer)))
+    (if-let* ((node (or (org-roam-node-from-title-or-alias name)
+			  (org-roam-node-create :id name)))
+		(node-populated (org-roam-populate node))
+		(file (org-roam-node-file node-populated)))
+	(when file (find-file file))
+      (message (format "No Org-roam node found for \"%s\"" name)))
     t))
 
 (provide 'md-roam)
