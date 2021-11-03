@@ -199,6 +199,7 @@ It is recommended it be turned on before
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
     (advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file)
     (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
+    (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
     (add-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))
    (t
     ;; Deactivate
@@ -207,6 +208,7 @@ It is recommended it be turned on before
     (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
+    (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
     (remove-hook #'org-open-at-point-functions #'md-roam-open-id-at-point))))
 
 ;;; Md-roam functions
@@ -525,8 +527,6 @@ which takes as its argument an alist of path-completions."
                 (org-roam-capture--capture)))))
       (deactivate-mark))
     t))
-
-(advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
 
 (defvar md-roam-wiki-link-type 'id)
 (setq md-roam-wiki-link-type 'title-or-alias)
