@@ -478,11 +478,16 @@ Return t or nil."
           (properties (list :outline nil)))
       (when source
         (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-          (when-let*
-              ((dest (match-string-no-properties 1)))
-            (org-roam-db-query
-             [:insert :into links :values $v1]
-             (vector (point) source dest type properties))))))))			  
+          (let*
+              ((name (match-string-no-properties 1))
+               (node (or (org-roam-node-from-title-or-alias name)
+                         (org-roam-node-create :id name)))
+               (dest (or (org-roam-node-id node)
+                         name)))
+            (when dest
+              (org-roam-db-query
+               [:insert :into links :values $v1]
+               (vector (point) source dest type properties)))))))))
 
 (defun md-roam-open-id-at-point ()
   "Open link, timestamp, footnote or tags at point.
