@@ -67,7 +67,7 @@
 
 (defvar md-roam-regex-aliases
   ;; Assumed to be case insensitive
-  "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
+  "\\(^.*ROAM_ALIASES:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-ref-key
   ;; Assumed to be case insensitive
@@ -345,7 +345,7 @@ causes infinite loop."
         info)
     (unless (string= content-hash db-hash)
       (org-roam-with-file file-path nil
-	(emacsql-with-transaction (org-roam-db)
+	;(emacsql-with-transaction (org-roam-db)
 	  (save-excursion
 	    ;; (org-set-regexps-and-options 'tags-only)
 	    (org-roam-db-clear-file)
@@ -365,7 +365,7 @@ causes infinite loop."
 	    ;;   (org-roam-db-map-citations
 	    ;;    info
 	    ;;    (list #'org-roam-db-insert-citation)))
-	    ))))))
+	    )))))
 
 (defun md-roam-db-insert-file-node ()
   ;; Check the exension. Only when md, use custom logc.
@@ -387,7 +387,7 @@ causes infinite loop."
            (deadline nil)
            (level 0)
            (aliases)
-           (tags nil)
+           (tags (md-roam-get-tags))
 	   (properties nil)
            (olp nil))
       (org-roam-db-query!
@@ -410,13 +410,46 @@ causes infinite loop."
       (md-roam-db-insert-aliases)
       (md-roam-db-insert-refs))))
 
+(defun md-roam-get-tags ()
+  "Extracts tags defined in the Zettlr style."
+  (let ((endpoint (md-roam-get-yaml-front-matter-endpoint)))
+    (cond (endpoint
+           (save-excursion
+             (let (tags-list)
+               (goto-char (point-min))
+               (while (re-search-forward md-roam-regex-tags-zettlr-style endpoint t)
+                 (let ((tag (match-string-no-properties 2)))
+                   (when tag
+                     (setq tags-list
+                           ;; Remove the first char @ or #
+                           (append tags-list (list (substring tag 1 (length tag))))))))
+               tags-list))))))
+
 (defun md-roam-db-insert-aliases ()
   "Insert aliases for node at point into Org-roam cache."
-  )
+  (when-let* ((node-id (md-roam-id-get))
+              (frontmatter (md-roam-get-yaml-front-matter))
+              (aliases (and frontmatter
+                            (string-match md-roam-regex-aliases frontmatter)
+                            (md-roam--yaml-seq-to-list
+                             (match-string-no-properties 2 frontmatter)))))
+    (org-roam-db-query [:insert :into aliases
+                                :values $v1]
+                       (mapcar (lambda (alias)
+                                 (vector node-id alias))
+                               aliases))))
 
 (defun md-roam-db-insert-refs ()
   "Insert refs for node at point into Org-roam cache."
   )
+;;     "Extract roam_key from current buffer; return the type and the key.
+;; Use regex instead of `org-roam--extract-global-props'.
+;; Return cons of (type . key). Type is always 'file' for now."
+
+;;     (let ((frontmatter (md-roam-get-yaml-front-matter)))
+;;     (cond (frontmatter
+;;            (when (string-match md-roam-regex-ref-key frontmatter)
+;;              (list (cons "cite" (match-string-no-properties 2 frontmatter))))))))
 
 (defun md-roam-node-at-point (&optional _assert)
   "Return the node at point.
