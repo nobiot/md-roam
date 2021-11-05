@@ -570,7 +570,13 @@ which takes as its argument an alist of path-completions."
               (node-populated (org-roam-populate node))
               (file (org-roam-node-file node-populated)))
         (when file (find-file file))
-      (message (format "No Org-roam node found for \"%s\"" name)))
+      (message (format "No Org-roam node found for \"%s\"" name))
+      ;; TODO the source file needs to be saved again to update link for the
+      ;; backlink to be cached.  This should be in the capture finaliztion
+      ;; procss after the new buffer is saved (aborted should not be saved)
+      (org-roam-capture-
+       :node (org-roam-node-create :title name)
+       :props '(:finalize find-file)))
     t))
 
 (provide 'md-roam)
