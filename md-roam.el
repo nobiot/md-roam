@@ -27,21 +27,19 @@
 ;;
 ;;; Code:
 ;;;
-
 (eval-when-compile (require 'subr-x))
+(require 'markdown-mode)
 (require 'org)
 (require 'emacsql)
 (require 'emacsql-sqlite)
+(require 'org-roam)
+(require 'org-roam-db)
 (require 'org-roam-utils)
 
-;;(require 'org-roam)
-;;(require 'org-roam-utils)
 ;;(require 'dash)
 ;;(require 's)
 ;;(require 'f)
-;;(require 'org-roam-mode)
 ;;(require 'org-roam-node)
-;;(require 'org-roam-db)
 
 ;;; Md-roam addtional variables
 
@@ -325,8 +323,8 @@ causes infinite loop."
       (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
   (let ((content-hash (org-roam-db--file-hash file-path))
         (db-hash (caar (org-roam-db-query [:select hash :from files
-						   :where (= file $s1)] file-path)))
-        info)
+						   :where (= file $s1)] file-path))))
+        ;;info)
     (unless (string= content-hash db-hash)
       (org-roam-with-file file-path nil
 	(emacsql-with-transaction (org-roam-db)
@@ -464,8 +462,7 @@ logic of `org-roam-db-insert-link'."
     (save-restriction
       (widen)
       (goto-char 1)
-      (let ((file (buffer-file-name (buffer-base-buffer)))
-            (type "id")
+      (let ((type "id")
             (source (md-roam-extract-id))
             (properties (list :outline nil)))
         (when source
