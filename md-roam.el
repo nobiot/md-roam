@@ -30,6 +30,8 @@
 
 (eval-when-compile (require 'subr-x))
 (require 'org)
+;;(require 'org-roam)
+;;(require 'org-roam-utils)
 ;;(require 'dash)
 ;;(require 's)
 ;;(require 'f)
@@ -139,8 +141,6 @@ Group 6 matches the URL.
 Group 7 matches the title (optional).
 Group 8 matches the closing parenthesis.")
 
-(defvar md-roam-verbose t)
-
 ;;; Md-roam customizing
 
 (defcustom md-roam-file-extension-single "md"
@@ -152,16 +152,6 @@ such as .md and .markdown."
   :type 'string
   :group 'org-roam)
 
-(defcustom md-roam-use-org-file-links t
-  "Defines if Md-roam extracts Org's file link for backlinks in md files.
-Default is t, that is to extract both wiki-links and Org's file links.
-For faster performance, set it to nil to extract only
-[[wiki-links]] of Md-roam and ignore the Org file links.
-This does not affect Org files within Org-roam directory."
-
-  :type 'boolean
-  :group 'org-roam)
-
 (defcustom md-roam-use-org-extract-ref t
   "Defines if Md-roam extracts REF_KEY using Org-roam logic.
 Default is t, that is to use #+ref_key with Org-roam logic.
@@ -170,14 +160,6 @@ roam_key: within YAML front matter only.
 It's intended for better performance, and aesthetic style.
 Recommended if your bibliographic notes are written in markdown files.
 Leave it as default, if they are written in org files."
-
-  :type 'boolean
-  :group 'org-roam)
-
-(defcustom md-roam-use-markdown-file-links nil
-  "Defines if Md-roam extracts links defined via Markdown syntax.
-Default is nil. If enabled, Md-roam searches the buffer for links
-  [descriptoin](path/to/file.ext)."
 
   :type 'boolean
   :group 'org-roam)
@@ -193,7 +175,11 @@ It is recommended it be turned on before
   :global t
   (cond
    (md-roam-mode
-    ;; Activate
+    ;; Activate Some cases some org-roam macros such as `org-roam-with-file'
+    ;; emits an error.  Emacs complains: invalid function org-roam-with-file
+    ;; Explicitly requiring macros again seem to tame this behaviour
+    (require 'org-roam-utils)
+    (require 'emacsql)
     (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
@@ -227,7 +213,7 @@ Return t or nil."
 (defun md-roam-get-yaml-front-matter ()
   "Return the text of the YAML front matter of the current buffer.
 Return nil if the front matter does not exist, or incorrectly delineated by
-'---'. The front matter is required to be at the beginning of the file."
+'---'.  The front matter is required to be at the beginning of the file."
 
   (save-excursion
     (goto-char (point-min))
@@ -242,7 +228,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
 (defun md-roam-get-yaml-front-matter-endpoint ()
   "Return the endpoint of the YAML front matter of the current buffer.
 Return nil if the front matter does not exist, or incorrectly delineated by
-'---'. The front matter is required to be at the beginning of the file."
+'---'.  The front matter is required to be at the beginning of the file."
 
   (save-excursion
     (goto-char (point-min))
@@ -258,7 +244,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
   "Extract title from the current buffer (markdown file with YAML frontmatter).
 
 This function looks for the YAML frontmatter delineator '---' begining of
-the buffer. No space is allowed before or after the delineator.
+the buffer.  No space is allowed before or after the delineator.
 
 It assumes:
  (1) Current buffer is a markdonw file (but does not check it)
@@ -274,7 +260,7 @@ It assumes:
   "Extract id from the current buffer (markdown file with YAML frontmatter).
 
 This function looks for the YAML frontmatter delineator '---' begining of
-the buffer. No space is allowed before or after the delineator.
+the buffer.  No space is allowed before or after the delineator.
 
 It assumes:
  (1) Current buffer is a markdonw file (but does not check it)
@@ -296,7 +282,7 @@ If not, return STR as is."
 
 (defun md-roam--yaml-seq-to-list (seq)
   "Return a list from YAML SEQ formatted in the flow style.
-SEQ = sequence, it's an array. At the moment, only the flow style works.
+SEQ = sequence, it's an array.  At the moment, only the flow style works.
 
 See the spec at https://yaml.org/spec/1.2/spec.html
   Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
@@ -333,19 +319,15 @@ causes infinite loop."
     ;; invalid function `emacsq-with-transaction' error.  This seems to be
     ;; because this function is called within advice.  Calling another function
     ;; and then call the macro in it seems to have no problem.
-    (md-roam-test (or file-path (buffer-file-name (buffer-base-buffer))))
-    ;; For before-until advice
-    t))
-
-(defun md-roam-test (&optional file-path)
-  (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+    ;;(md-roam-test (or file-path (buffer-file-name (buffer-base-buffer))))
+      (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
   (let ((content-hash (org-roam-db--file-hash file-path))
         (db-hash (caar (org-roam-db-query [:select hash :from files
 						   :where (= file $s1)] file-path)))
         info)
     (unless (string= content-hash db-hash)
       (org-roam-with-file file-path nil
-	;(emacsql-with-transaction (org-roam-db)
+	(emacsql-with-transaction (org-roam-db)
 	  (save-excursion
 	    ;; (org-set-regexps-and-options 'tags-only)
 	    (org-roam-db-clear-file)
@@ -359,14 +341,16 @@ causes infinite loop."
 	    ;;        #'org-roam-db-insert-refs))
 	    ;; (setq org-outline-path-cache nil)
 	    ;; (setq info (org-element-parse-buffer))
-	    (md-roam-db-map-links)
+	    (md-roam-db-insert-links)
 	    ;; (when (fboundp 'org-cite-insert)
 	    ;;   (require 'oc)             ;ensure feature is loaded
 	    ;;   (org-roam-db-map-citations
 	    ;;    info
 	    ;;    (list #'org-roam-db-insert-citation)))
-	    )))))
-
+	    ))))
+    ;; For before-until advice
+    t)))
+  
 (defun md-roam-db-insert-file-node ()
   ;; Check the exension. Only when md, use custom logc.
   ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
@@ -388,7 +372,7 @@ causes infinite loop."
            (level 0)
            (aliases)
            (tags (md-roam-get-tags))
-	   (properties nil)
+	   (properties (list (cons "TITLE" title) (cons "ID" id)))
            (olp nil))
       (org-roam-db-query!
        (lambda (err)
@@ -469,26 +453,34 @@ Return t or nil."
   (let ((ext (org-roam--file-name-extension path)))
     (string= ext md-roam-file-extension-single)))
 
-(defun md-roam-db-map-links ()
-  "Extract links in the form of [[ID]]."
+(defun md-roam-db-insert-links ()
+  "Extract links in the form of [[ID]].
+Instead of using the logic of `org-roam-db-map-links' that
+delegates to multiple functions, this function directly used the
+logic of `org-roam-db-insert-link'."
   (save-excursion
-    (let ((file (buffer-file-name (buffer-base-buffer)))
-          (type "id")
-          (source (md-roam-extract-id))
-          (properties (list :outline nil)))
-      (when source
-        (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-          (let*
-              ((name (match-string-no-properties 1))
-               (node (or (org-roam-node-from-title-or-alias name)
-                         (org-roam-node-create :id name)))
-               (dest (or (org-roam-node-id node)
-                         name)))
-            (when dest
-              (org-roam-db-query
-               [:insert :into links :values $v1]
-               (vector (point) source dest type properties)))))))))
-
+    (save-restriction
+      (widen)
+      (goto-char 1)
+      (let ((file (buffer-file-name (buffer-base-buffer)))
+            (type "id")
+            (source (md-roam-extract-id))
+            (properties (list :outline nil)))
+        (when source
+          (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
+            (let*
+                ((name (match-string-no-properties 1))
+                 (node (or (org-roam-node-from-title-or-alias name)
+                           (org-roam-node-create :id name)))
+                 (path (org-roam-node-id node)))
+              ;; insert to cache the link only there is a file for the
+              ;; destination node
+              (when (org-roam-node-file (org-roam-populate node))
+                (org-roam-db-query
+                 [:insert :into links
+                          :values $v1]
+                 (vector (point) source path type properties))))))))))
+  
 (defun md-roam-open-id-at-point ()
   "Open link, timestamp, footnote or tags at point.
 The function tries to open ID-links with Org-roam’s database
@@ -570,7 +562,7 @@ which takes as its argument an alist of path-completions."
 (setq md-roam-wiki-link-type 'title-or-alias)
 (setq md-roam-wiki-link-type 'id)
 
-(defun md-roam-follow-wiki-link (name &optional other)
+(defun md-roam-follow-wiki-link (name &optional _other)
   "`markdown-follow-wiki-link'"
   (when (org-roam-file-p (buffer-file-name (buffer-base-buffer)))
     (if-let* ((node (or (org-roam-node-from-title-or-alias name)
