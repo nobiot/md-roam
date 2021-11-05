@@ -30,6 +30,10 @@
 
 (eval-when-compile (require 'subr-x))
 (require 'org)
+(require 'emacsql)
+(require 'emacsql-sqlite)
+(require 'org-roam-utils)
+
 ;;(require 'org-roam)
 ;;(require 'org-roam-utils)
 ;;(require 'dash)
@@ -178,8 +182,6 @@ It is recommended it be turned on before
     ;; Activate Some cases some org-roam macros such as `org-roam-with-file'
     ;; emits an error.  Emacs complains: invalid function org-roam-with-file
     ;; Explicitly requiring macros again seem to tame this behaviour
-    (require 'org-roam-utils)
-    (require 'emacsql)
     (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
