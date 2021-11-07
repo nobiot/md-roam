@@ -183,22 +183,19 @@ It is recommended it be turned on before
   :global t
   (cond
    (md-roam-mode
-    ;; Activate Some cases some org-roam macros such as `org-roam-with-file'
-    ;; emits an error.  Emacs complains: invalid function org-roam-with-file
-    ;; Explicitly requiring macros again seem to tame this behaviour
+    ;; Org-roam cache
     (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
+    ;; Other interactive commands
     (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
     (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
-    ;; For `org-roam-mode' buffer
+    ;; `org-roam-mode' buffer
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point))
-    ;;(advice-add #'org-id-find-id-in-file :before-until #'md-roam-find-id-in-file))
    (t
     ;; Deactivate
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point))))
-    ;;(advice-remove #'org-id-find-id-in-file #'md-roam-find-id-in-file))))
 
 ;;;; Functions
 
@@ -459,25 +456,6 @@ If ASSERT, throw an error."
              (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
     (org-roam-populate (org-roam-node-create :id (md-roam-get-id)))))
 
-;; (defun md-roam-find-id-in-file (_id file &optional markerp)
-;;   "Return the position of the entry ID in FILE.
-;; If that files does not exist, or if it does not contain this ID,
-;; return nil.
-;; The position is returned as a cons cell (file-name . position).  With
-;; optional argument MARKERP, return the position as a new marker."
-;;   (when (and file
-;;              (file-exists-p file)
-;;              (md-roam--markdown-file-p file))
-;;     ;; The original function uses `org-find-entry-with-id' to set pos We have
-;;     ;; only file-node wiht a frontmatter, so it's OK to be fixed to positon 1
-;;     (let ((pos 1)
-;;           (buf (find-file-noselect file)))
-;;       (with-current-buffer buf
-;;         (when pos
-;;           (if markerp
-;;               (move-marker (make-marker) pos buf)
-;;             (cons file pos)))))))
-
 ;;------------------------------------------------------------------------------
 ;;;;; Get functions, mainly for properties in frontmatter
 
@@ -491,7 +469,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
     (when-let
         ((startpoint (re-search-forward
                       md-roam-regex-yaml-font-matter-beginning 4 t 1))
-                                        ;The beginning needs to be in the beginning of buffer
+         ;; The beginning needs to be in the beginning of buffer
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       (buffer-substring-no-properties startpoint endpoint))))
@@ -506,7 +484,7 @@ Return nil if the front matter does not exist, or incorrectly delineated by
     (when-let
         ((startpoint (re-search-forward
                       md-roam-regex-yaml-font-matter-beginning 4 t 1))
-                                        ;The beginning needs to be in the beginning of buffer
+         ;; The beginning needs to be in the beginning of buffer
          (endpoint (re-search-forward
                     md-roam-regex-yaml-font-matter-ending nil t 1)))
       endpoint)))
@@ -591,23 +569,31 @@ If not, return STR as is."
       str)))
 
 (defun md-roam--yaml-seq-to-list (seq)
-  "Return a list from YAML SEQ formatted in the flow style.
-SEQ = sequence, it's an array.  At the moment, only the flow style works.
+  "Return a list from YAML SEQ formatted in the flow style.  SEQ = sequence,
+it's an array.  At the moment, only the flow style works.
 
-See the spec at https://yaml.org/spec/1.2/spec.html
-  Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
+See the spec at https://yaml.org/spec/1.2/spec.html Flow style:
 
-  ;; The items in the sequence (array) can be separated by different ways.
-  ;;   1. Spaces like the example from the spec above
-  ;;   2. Single-quotes 'item'
-  ;;   3. Double-quotes "item"
-  ;; Do not escape the singe- or double-quotations. At the moment, that does
-  ;; lead to error
+    !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ].
 
-  ;; The regexp is meant to to match YAML sequence formatted in the flow style.
-  ;; At the moment, only the flow style is considered. The number of spaces
-  ;; between the squeare bracket and the first/last item should not matter.
-  ;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
+The items in the sequence (array) can be separated by different ways.
+
+    1. Spaces like the example from the spec above
+    2. Single-quotes 'item'
+    3. Double-quotes \"item\"
+
+Do not escape the singe- or double-quotations. At the moment,
+that doeslead to error.
+
+The regexp is meant to to match YAML sequence formatted in the
+flow style.  At the moment, only the flow style is
+considered. The number of spaces between the squeare bracket and
+the first/last item should not matter.
+
+    [item1, item2, item3]
+    [ item1, item2, item3 ]
+
+These should be equally valid."
 
   (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
         (separator ",\s*"))
