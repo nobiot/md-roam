@@ -306,7 +306,7 @@ See the spec at https://yaml.org/spec/1.2/spec.html
         (mapcar #'md-roam--remove-single-quotes items)))))
 
 ;;;; Synchronization
-(defun md-roam-db-update-file (&optional file-path no-require)
+(defun md-roam-db-update-file (&optional file-path _no-require)
   "Update Org-roam cache for FILE-PATH.
 If the file does not exist anymore, remove it from the cache.
 If the file exists, update the cache with information.
@@ -353,10 +353,11 @@ causes infinite loop."
     t)))
   
 (defun md-roam-db-insert-file-node ()
+  "."
   ;; Check the exension. Only when md, use custom logc.
   ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
   (markdown-mode)
-  ;; run org-roam hooks to re-set after-save-hooks, etc.
+  ;;o run org-roam hooks to re-set after-save-hooks, etc.
   (run-hooks 'org-roam-find-file-hook)
   ;; This can be gfm-mode
   ;; Need to remember it somwhere
@@ -371,7 +372,6 @@ causes infinite loop."
            (scheduled nil)
            (deadline nil)
            (level 0)
-           (aliases)
            (tags (md-roam-get-tags))
 	   (properties (list (cons "TITLE" title) (cons "ID" id)))
            (olp nil))
@@ -546,7 +546,7 @@ This function hooks into `org-open-at-point' via
          (caar (org-roam-db-query
                 [:select [file] :from nodes :where (= id $s1)] id)))))))
 
-(defun md-roam-find-id-in-file (id file &optional markerp)
+(defun md-roam-find-id-in-file (_id file &optional markerp)
   "Return the position of the entry ID in FILE.
 If that files does not exist, or if it does not contain this ID,
 return nil.
@@ -555,6 +555,8 @@ optional argument MARKERP, return the position as a new marker."
   (when (and file
              (file-exists-p file)
              (md-roam--markdown-file-p file))
+    ;; The original function uses `org-find-entry-with-id' to set pos We have
+    ;; only file-node wiht a frontmatter, so it's OK to be fixed to positon 1
     (let ((pos 1)
           (buf (find-file-noselect file)))
       (with-current-buffer buf
@@ -563,13 +565,60 @@ optional argument MARKERP, return the position as a new marker."
               (move-marker (make-marker) pos buf)
             (cons file pos)))))))
 
-(defun md-roam-node-insert (&optional filter-fn)
-  "Find an Org-roam file, and insert a relative org link to it at point.
-Return selected file if it exists.
-If LOWERCASE is non-nil, downcase the link description.
-FILTER-FN is the name of a function to apply on the candidates
-which takes as its argument an alist of path-completions."
-  (interactive)
+;; (defun md-roam-node-insert (&optional filter-fn)
+;;   "Find an Org-roam file, and insert a relative org link to it at point.
+;; Return selected file if it exists.
+;; If LOWERCASE is non-nil, downcase the link description.
+;; FILTER-FN is the name of a function to apply on the candidates
+;; which takes as its argument an alist of path-completions."
+;;   (interactive)
+;;   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+;;     (unwind-protect
+;;         ;; Group functions together to avoid inconsistent state on quit
+;;         (atomic-change-group
+;;           (let* (region-text
+;;                  beg end
+;;                  (_ (when (region-active-p)
+;;                       (setq beg (set-marker (make-marker) (region-beginning)))
+;;                       (setq end (set-marker (make-marker) (region-end)))
+;;                       (setq region-text (org-link-display-format (buffer-substring-no-properties beg end)))))
+;;                  (node (org-roam-node-read region-text filter-fn))
+;;                  (description (or region-text
+;;                                   (org-roam-node-title node))))
+;;             (if (org-roam-node-id node)
+;;                 (progn
+;;                   (when region-text
+;;                     (delete-region beg end)
+;;                     (set-marker beg nil)
+;;                     (set-marker end nil))
+;;                   ;; Adapt for Markdown-mode Wiki syntax
+;;                   (insert (concat "[[" (org-roam-node-id node) "]] " description)))
+;;               (let ((org-roam-capture--info
+;;                      `((title . ,(org-roam-node-title node))
+;;                        (slug . ,(funcall org-roam-title-to-slug-function (org-roam-node-title node)))))
+;;                     (org-roam-capture--context 'title))
+;;                 (setq org-roam-capture-additional-template-props
+;;                       (list :region (when (and beg end)
+;;                                       (cons beg end))
+;;                             :insert-at (point-marker)
+;;                             :link-description description
+;;                             :finalize 'insert-link))
+;;                 (org-roam-capture--capture)))))
+;;       (deactivate-mark))
+;;     t))
+
+(defvar md-roam-wiki-link-type 'id)
+(setq md-roam-wiki-link-type 'title)
+(setq md-roam-wiki-link-type 'id)
+
+;;;###autoload
+(cl-defun md-roam-node-insert (&optional filter-fn &key templates info)
+  "Find an Org-roam node and insert (where the point is) an \"id:\" link to it.
+FILTER-FN is a function to filter out nodes: it takes an `org-roam-node',
+and when nil is returned the node will be filtered out.
+The TEMPLATES, if provided, override the list of capture templates (see
+`org-roam-capture-'.)
+The INFO, if provided, is passed to the underlying `org-roam-capture-'."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
     (unwind-protect
         ;; Group functions together to avoid inconsistent state on quit
@@ -582,32 +631,36 @@ which takes as its argument an alist of path-completions."
                       (setq region-text (org-link-display-format (buffer-substring-no-properties beg end)))))
                  (node (org-roam-node-read region-text filter-fn))
                  (description (or region-text
-                                  (org-roam-node-title node))))
+                                  (org-roam-node-formatted node))))
             (if (org-roam-node-id node)
                 (progn
                   (when region-text
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  ;; Adapt for Markdown-mode Wiki syntax
-                  (insert (concat "[[" (org-roam-node-id node) "]] " description)))
-              (let ((org-roam-capture--info
-                     `((title . ,(org-roam-node-title node))
-                       (slug . ,(funcall org-roam-title-to-slug-function (org-roam-node-title node)))))
-                    (org-roam-capture--context 'title))
-                (setq org-roam-capture-additional-template-props
-                      (list :region (when (and beg end)
-                                      (cons beg end))
-                            :insert-at (point-marker)
-                            :link-description description
-                            :finalize 'insert-link))
-                (org-roam-capture--capture)))))
-      (deactivate-mark))
-    t))
-
-(defvar md-roam-wiki-link-type 'id)
-(setq md-roam-wiki-link-type 'title-or-alias)
-(setq md-roam-wiki-link-type 'id)
+                  (insert (concat "[["
+                                  (cond
+                                   ((eq md-roam-wiki-link-type 'id)
+                                    (concat (org-roam-node-id node) "]] " description))
+                                   ((eq md-roam-wiki-link-type 'title-or-alias)
+                                    (concat (org-roam-node-title node) "]]")))))
+                  ;; for advice
+                  t)
+              (org-roam-capture-
+               :node node
+               :info info
+               :templates templates
+               :props (append
+                       (when (and beg end)
+                         (list :region (cons beg end)))
+                       (list :insert-at (point-marker)
+                             :link-description description
+                             :finalize 'insert-link)))
+              ;; for advice
+              t)))
+      (deactivate-mark)
+      ;; for advice
+      t)))
 
 (defun md-roam-follow-wiki-link (name &optional _other)
   "`markdown-follow-wiki-link'"
