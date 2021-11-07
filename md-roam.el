@@ -342,6 +342,7 @@ causes infinite loop."
 	    ;; (setq info (org-element-parse-buffer))
 	    (md-roam-db-insert-wiki-links)
             (md-roam-db-insert-citations)
+            (md-roam-db-insert-links)
 	    ;; (when (fboundp 'org-cite-insert)
 	    ;;   (require 'oc)             ;ensure feature is loaded
 	    ;;   (org-roam-db-map-citations
@@ -399,15 +400,15 @@ causes infinite loop."
   (let ((endpoint (md-roam-get-yaml-front-matter-endpoint)))
     (cond (endpoint
            (save-excursion
-             (let (tags-list)
+             (let (tags)
                (goto-char (point-min))
                (while (re-search-forward md-roam-regex-tags-zettlr-style endpoint t)
                  (let ((tag (match-string-no-properties 2)))
                    (when tag
-                     (setq tags-list
+                     (setq tags
                            ;; Remove the first char @ or #
-                           (append tags-list (list (substring tag 1))))))
-               tags-list)))))))
+                           (append tags (list (substring tag 1)))))))
+               tags))))))
 
 (defun md-roam-db-insert-aliases ()
   "Insert aliases for node at point into Org-roam cache."
@@ -476,11 +477,10 @@ logic of `org-roam-db-insert-link'."
             (properties (list :outline nil)))
         (when source
           (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-            (let*
-                ((name (match-string-no-properties 1))
-                 (node (or (org-roam-node-from-title-or-alias name)
-                           (org-roam-node-create :id name)))
-                 (path (org-roam-node-id node)))
+            (let* ((name (match-string-no-properties 1))
+                   (node (or (org-roam-node-from-title-or-alias name)
+                             (org-roam-node-create :id name)))
+                   (path (org-roam-node-id node)))
               ;; insert to cache the link only there is a file for the
               ;; destination node
               (when (org-roam-node-file (org-roam-populate node))
@@ -488,6 +488,24 @@ logic of `org-roam-db-insert-link'."
                  [:insert :into links
                           :values $v1]
                  (vector (point) source path type properties))))))))))
+
+(defun md-roam-db-insert-links ()
+  "for ref."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (md-roam-get-yaml-front-matter-endpoint))
+      (let  ((source (md-roam-extract-id))
+             (properties (list :outline nil)))
+        (while (re-search-forward md-roam-regex-link-inline nil t)
+          (when-let* ((url (match-string-no-properties 6))
+                      (type (url-type (url-generic-parse-url url)))
+                      (path (progn (string-match org-link-plain-re url)
+	                           (match-string-no-properties 2 url))))
+            (org-roam-db-query
+             [:insert :into links
+                      :values $v1]
+             (vector (point) source path type properties))))))))
 
 (defun md-roam-db-insert-citations ()
   "Insert data for citations in the current buffer into Org-roam cache.
