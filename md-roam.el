@@ -29,9 +29,10 @@
 ;;;
 (eval-when-compile (require 'subr-x))
 (require 'markdown-mode)
-(require 'org)
+;;(require 'org)
+(require 'ol)
 (require 'emacsql)
-(require 'emacsql-sqlite)
+;;(require 'emacsql-sqlite)
 (require 'org-roam)
 (require 'org-roam-db)
 (require 'org-roam-utils)
@@ -73,10 +74,8 @@
   ;; Assumed to be case insensitive
   "\\(^.*ROAM_ALIASES:[ \t]*\\)\\(.*\\)")
 
-(defvar md-roam-regex-ref-key
+(defvar md-roam-regex-ref-keys
   ;; Assumed to be case insensitive
-  ;; TODO
-  ;; At the moment, only one ref, I think
   "\\(^.*ROAM_REFS:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-headline
@@ -307,7 +306,7 @@ See the spec at https://yaml.org/spec/1.2/spec.html
         (mapcar #'md-roam--remove-single-quotes items)))))
 
 ;;;; Synchronization
-(defun md-roam-db-update-file (&optional file-path)
+(defun md-roam-db-update-file (&optional file-path no-require)
   "Update Org-roam cache for FILE-PATH.
 If the file does not exist anymore, remove it from the cache.
 If the file exists, update the cache with information.
@@ -341,7 +340,8 @@ causes infinite loop."
 	    ;;        #'org-roam-db-insert-refs))
 	    ;; (setq org-outline-path-cache nil)
 	    ;; (setq info (org-element-parse-buffer))
-	    (md-roam-db-insert-links)
+	    (md-roam-db-insert-wiki-links)
+            (md-roam-db-insert-citations)
 	    ;; (when (fboundp 'org-cite-insert)
 	    ;;   (require 'oc)             ;ensure feature is loaded
 	    ;;   (org-roam-db-map-citations
@@ -406,8 +406,8 @@ causes infinite loop."
                    (when tag
                      (setq tags-list
                            ;; Remove the first char @ or #
-                           (append tags-list (list (substring tag 1 (length tag))))))))
-               tags-list))))))
+                           (append tags-list (list (substring tag 1))))))
+               tags-list)))))))
 
 (defun md-roam-db-insert-aliases ()
   "Insert aliases for node at point into Org-roam cache."
@@ -425,15 +425,24 @@ causes infinite loop."
 
 (defun md-roam-db-insert-refs ()
   "Insert refs for node at point into Org-roam cache."
-  )
-;;     "Extract roam_key from current buffer; return the type and the key.
-;; Use regex instead of `org-roam--extract-global-props'.
-;; Return cons of (type . key). Type is always 'file' for now."
-
-;;     (let ((frontmatter (md-roam-get-yaml-front-matter)))
-;;     (cond (frontmatter
-;;            (when (string-match md-roam-regex-ref-key frontmatter)
-;;              (list (cons "cite" (match-string-no-properties 2 frontmatter))))))))
+  (when-let* ((node-id (md-roam-id-get))
+              (frontmatter (md-roam-get-yaml-front-matter))
+              (refs (and frontmatter
+                         (string-match md-roam-regex-ref-keys frontmatter)
+                         (split-string-and-unquote
+                          (match-string-no-properties 2 frontmatter)))))
+    (let (rows)
+      (dolist (ref refs)
+        (save-match-data
+          (cond ((string-match org-link-plain-re ref)
+                 (push (vector node-id (match-string 2 ref) (match-string 1 ref)) rows))
+                (t
+                 (push (vector node-id ref "cite") rows)))))
+      (when rows
+        (org-roam-db-query [:insert :into refs
+                            :values $v1]
+                           rows)))))
+      
 
 (defun md-roam-node-at-point (&optional _assert)
   "Return the node at point.
@@ -453,7 +462,7 @@ Return t or nil."
   (let ((ext (org-roam--file-name-extension path)))
     (string= ext md-roam-file-extension-single)))
 
-(defun md-roam-db-insert-links ()
+(defun md-roam-db-insert-wiki-links ()
   "Extract links in the form of [[ID]].
 Instead of using the logic of `org-roam-db-map-links' that
 delegates to multiple functions, this function directly used the
@@ -461,7 +470,7 @@ logic of `org-roam-db-insert-link'."
   (save-excursion
     (save-restriction
       (widen)
-      (goto-char 1)
+      (goto-char (md-roam-get-yaml-front-matter-endpoint))
       (let ((type "id")
             (source (md-roam-extract-id))
             (properties (list :outline nil)))
@@ -479,7 +488,28 @@ logic of `org-roam-db-insert-link'."
                  [:insert :into links
                           :values $v1]
                  (vector (point) source path type properties))))))))))
-  
+
+(defun md-roam-db-insert-citations ()
+  "Insert data for citations in the current buffer into Org-roam cache.
+The citation is defined in Pandoc syntax such as
+\"[@citation-key]\"."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (md-roam-get-yaml-front-matter-endpoint))
+      (let ((source (md-roam-extract-id))
+            ;; TODO outline path always nil
+            (properties (list :outline nil)))
+        (when source
+          (while (re-search-forward md-roam-regex-in-text-citation-2 nil t)
+            (when-let
+                ;; remove "@" for key
+                ((key (match-string-no-properties 2)))
+              (org-roam-db-query
+               [:insert :into citations
+                        :values $v1]
+               (vector source key (match-beginning 2) properties)))))))))
+
 (defun md-roam-open-id-at-point ()
   "Open link, timestamp, footnote or tags at point.
 The function tries to open ID-links with Org-roam’s database
