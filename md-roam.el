@@ -75,7 +75,6 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
   
 ;;;; Variables
 
-
 ;;;; These regular expressions are modified version of
 ;;;; `markdown-regex-yaml-metadata-border.
 ;;;; I am adding "^" to indicate that the a line needs to
@@ -194,6 +193,8 @@ It is recommended it be turned on before
     ;; Other interactive commands
     (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
     (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
+    ;; This avoids capture process to add ID in the Org property drawer
+    (advice-add #'org-id-get :before-until #'md-roam-id-get)
     ;; `org-roam-mode' buffer
     (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point))
    (t
@@ -201,6 +202,7 @@ It is recommended it be turned on before
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
+    (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point))))
 
 ;;;; Functions
@@ -451,6 +453,21 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
        :node (org-roam-node-create :title name)
        :props '(:finalize find-file)))
     t))
+
+;;------------------------------------------------------------------------------
+;;;;; Functions for `org-roam-capture'
+
+(defun md-roam-id-get (&optional _pom _create _prefix)
+  "This is meant to replace `org-id-get' for markdown buffers.
+`org-roam-capture' process tries to create and add ID in the
+Org's property drawer for a new file is being created.  For
+markdown files, this should be prevented.  We can achieve this
+because currently this function does not implement the create
+process \(for _create argument\).
+
+TODO CREATE process to insert a new ID within frontmatter."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (md-roam-get-id)))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-buffer'
