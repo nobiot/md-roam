@@ -1,46 +1,79 @@
 ;;; md-roam.el --- description -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2020 Noboru Ota
+;; Copyright (C) 2020-2021 Noboru Ota
 ;;
-;; Author: Noboru Ota <https://github.com/nobiot>, <https://gitlab.com/nobiot>
-;; Maintainer: Noboru Ota <me@nobiot.com>
-;; Created: April 15, 2020
-;; Modified: March 15, 2021
-;; Version: 1.4.1
-;; Keywords:
-;; Homepage: https://github.com/nobiot/md-roam, https://gitlab.com/nobiot/md-roam
-;; Package-Requires: ((emacs 26.3) (dash) (s) (f) (org-roam))
-;;
+;; Author: Noboru Ota <https://github.com/nobiot>
+;; URL: https://github.com/nobiot/md-roam
+;; Version: 2.0.0
+;; Last Modified: 2021-11-08
+;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdow-mode "2.5"))
+;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
+
 ;; This file is not part of GNU Emacs.
-;;
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 ;;; Commentary:
+
 ;;  Use org-roam with markdown files by adding md-roam to it.  md-roam extends
 ;;  the features and functions provided by org-roam to support markdown files
-;;  in addition to org files.
-;;
-;;  Refer to README in the GitHub / GitLab repo for instruction, configuraiton,
-;;  and features supported.
-;;
+;;  in addition to org
+
+;;  Refer to README in the GitHub repo for instruction, configuraiton,
+;;  and features supported in more detail
+
 ;;; Code:
-;;;
+
+;;;; Requirements
 
 (eval-when-compile (require 'subr-x))
-(require 'dash)
-(require 's)
-(require 'f)
-(declare-function org-roam--file-name-extension 'org-roam)
-(declare-function org-roam--str-to-list 'org-roam)
-(declare-function org-roam--org-roam-file-p 'org-roam)
-(declare-function url-type ''url-parse)
+(require 'markdown-mode)
+(require 'org)
+(require 'org-macs)
+(require 'ol)
+(require 'emacsql)
+;;(require 'emacsql-sqlite)
+(require 'org-roam)
+(require 'org-roam-db)
+(require 'org-roam-utils)
 
-;;; Md-roam addtional variables
+;;;; Customization
 
-;;; Regexp for the beginning and ending of YAML front matter section
-;;; In markdown-mode, beginning and ending are the same: "---".
-;;; Separate regular expressions are defined here because in some
-;;; markdown conventions, the ending is delineated by "```".
-;;; This can be potentially supported setting a custom regexp for
-;;; the ending delineator.
+(defgroup md-roam nil
+  "Use markdown files in Org-roam."
+  :group 'org-roam
+  :prefix "md-roam-"
+  :link '(url-link :tag "Github" "https://github.com/nobiot/md-roam"))
+
+(defcustom md-roam-file-extension "md"
+  "Define the extesion to be used for Md-roam within Org-roam directory.
+Unlike 'org-roam-file-extension', this is a single value, not a list.
+It is intended to be used for you to define a different markdown extension,
+such as .md and .markdown."
+  :type 'string
+  :group 'md-roam)
+
+(defcustom md-roam-node-insert-type 'title-or-alias
+  "Define whether ID or title/aliase should be inserted.
+This is for `md-roam-node-insert'.  If 'title-and-alias, the
+resultant wiki link will be \"[[title]]\.  If 'ID, it will be
+\"[[ID]] title\"."
+  :type '(choice (const :tag "Title or alias" title-or-alias)
+		 (const :tag "Node ID" ID))
+  :group 'md-roam)
+  
+;;;; Variables
 
 ;;;; These regular expressions are modified version of
 ;;;; `markdown-regex-yaml-metadata-border.
@@ -48,23 +81,36 @@
 ;;;; start with the delineator.
 
 (defvar md-roam-regex-yaml-font-matter-beginning
-  "\\(^-\\{3\\}\\)$")
+  "\\(^-\\{3\\}\\)$"
+  "Regexp for the beginning of YAML front matter section.
+In markdown-mode, beginning and ending are the same: \"---\".")
 
 (defvar md-roam-regex-yaml-font-matter-ending
-  "\\(^-\\{3\\}\\)$")
-;; "If you change this to `\\(^`'\\{3\\}\\)$', you should be able to
-;; support YAML matter ending with ```. I am not testing it, though.")
+  "\\(^-\\{3\\}\\)$"
+  "Regexp for the ending of YAML front matter section.
+Separate regular expressions for beginning and ending are defined
+here because in some markdown conventions, the ending is
+delineated by \"```\".
+
+This can be potentially supported setting a custom regexp for
+the ending delineator.
+
+If you change this to `\\(^`'\\{3\\}\\)$', you should be able to
+support YAML matter ending with ```. I am not testing it, though.")
 
 (defvar md-roam-regex-title
   "\\(^title:[ \t]*\\)\\(.*\\)")
 
+(defvar md-roam-regex-id
+  "\\(^id:[ \t]*\\)\\(.*\\)")
+
 (defvar md-roam-regex-aliases
   ;; Assumed to be case insensitive
-  "\\(^.*ROAM_ALIAS:[ \t]*\\)\\(.*\\)")
+  "\\(^.*ROAM_ALIASES:[ \t]*\\)\\(.*\\)")
 
-(defvar md-roam-regex-ref-key
+(defvar md-roam-regex-ref-keys
   ;; Assumed to be case insensitive
-  "\\(^.*ROAM_KEY:[ \t]*\\)\\(.*\\)")
+  "\\(^.*ROAM_REFS:[ \t]*\\)\\(.*\\)")
 
 (defvar md-roam-regex-headline
   (concat "^\s*\n"                   ;exludes YAML front matter
@@ -130,52 +176,403 @@ Group 6 matches the URL.
 Group 7 matches the title (optional).
 Group 8 matches the closing parenthesis.")
 
-(defvar md-roam-verbose t)
+;;;; Commands
 
-;;; Md-roam customizing
+;;;###autoload
+(define-minor-mode md-roam-mode
+  "Md-roam mode needs to be turned before `org-roam-db-sync'.
+It is recommended it be turned on before
+`org-roam-db-autosync-mode'."
+  :init-value nil
+  :lighter "md-roam"
+  :global t
+  (cond
+   (md-roam-mode
+    ;; Org-roam cache
+    (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
+    ;; Other interactive commands
+    (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
+    (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
+    ;; This avoids capture process to add ID in the Org property drawer
+    (advice-add #'org-id-get :before-until #'md-roam-id-get)
+    ;; `org-roam-mode' buffer
+    (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point))
+   (t
+    ;; Deactivate
+    (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
+    (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
+    (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
+    (advice-remove #'org-id-get #'md-roam-id-get)
+    (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point))))
 
-(defcustom md-roam-file-extension-single "md"
-  "Defines the extesion to be used for Md-roam within Org-roam directory.
-Unlike 'org-roam-file-extension', this is a single value, not a list.
-It is intended to be used for you to define a different markdown extension,
-such as .md and .markdown."
+;;;; Functions
 
-  :type 'string
-  :group 'org-roam)
+;;;;; Private
+;;    None of the functions in Md-roam are meant to be interactive commands.
+;;    This is because they are meant to extend Org-roam functions (mostly in
+;;    `org-roam-db') by means of advice.  This means that you as a user don't
+;;    have to thinkg about the difference between Org-roam and Md-roam.  You can
+;;    just use the same Org-roam commands such as `org-roam-node-insert' and
+;;    `org-roam-node-find' within markdown files.  The switch of context is
+;;    detected by the file extension -- e.g. .md vs .org -- and Md-roam will
+;;    take care of the difference of the context.
 
-(defcustom md-roam-use-org-file-links t
-  "Defines if Md-roam extracts Org's file link for backlinks in md files.
-Default is t, that is to extract both wiki-links and Org's file links.
-For faster performance, set it to nil to extract only
-[[wiki-links]] of Md-roam and ignore the Org file links.
-This does not affect Org files within Org-roam directory."
+;;------------------------------------------------------------------------------
+;;;;; DB related functions for `org-roam-db'
 
-  :type 'boolean
-  :group 'org-roam)
+(defun md-roam-db-update-file (&optional file-path _no-require)
+  "Update Org-roam cache for FILE-PATH.
+This function is meant to be used as advising function for
+`org-roam-db-update-file.'"
 
-(defcustom md-roam-use-org-extract-ref t
-  "Defines if Md-roam extracts REF_KEY using Org-roam logic.
-Default is t, that is to use #+ref_key with Org-roam logic.
-If nil, Md-roam uses its own regex to look for #+roam_key: or
-roam_key: within YAML front matter only.
-It's intended for better performance, and aesthetic style.
-Recommended if your bibliographic notes are written in markdown files.
-Leave it as default, if they are written in org files."
+  (when (md-roam--markdown-file-p (or file-path (buffer-file-name (buffer-base-buffer))))
+    (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+    (let ((content-hash (org-roam-db--file-hash file-path))
+          (db-hash (caar (org-roam-db-query [:select hash :from files
+					             :where (= file $s1)] file-path))))
+      (unless (string= content-hash db-hash)
+        (org-roam-with-file file-path nil
+	  (emacsql-with-transaction (org-roam-db)
+	    (save-excursion
+	      (org-roam-db-clear-file)
+	      (org-roam-db-insert-file)
+	      (md-roam-db-insert-file-node)
+	      (md-roam-db-insert-wiki-links)
+              (md-roam-db-insert-citations)
+              (md-roam-db-insert-links)
+              ;; For before-until advice
+              t)))))))
 
-  :type 'boolean
-  :group 'org-roam)
+(defun md-roam-db-insert-file-node ()
+  "Insert the file-level node into the Org-roam cache."
+  ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
+  ;; `markdown-mode' needs to be explicitly turned back on.
+  ;; TODO gfm-mode
+  (markdown-mode)
+  ;; Run org-roam hooks to re-set after-save-hooks, etc.
+  (run-hooks 'org-roam-find-file-hook)
+  ;; `org-with-point-at' macro does not seem to assume the buffer is Org
+  (org-with-point-at 1
+    (when-let ((id (md-roam-get-id)))
+      (let* ((file (buffer-file-name (buffer-base-buffer)))
+             (title (or (md-roam-get-title)
+                        (file-relative-name file org-roam-directory)))
+             (pos (point))
+	     (todo nil)
+	     (priority nil)
+             (scheduled nil)
+             (deadline nil)
+             (level 0)
+             (tags (md-roam-get-tags))
+             ;; Properties are required for `org-roam-ui'
+             ;; TODO other properties in frontmatter?
+	     (properties (list (cons "TITLE" title) (cons "ID" id)))
+             (olp nil))
+        (org-roam-db-query!
+         (lambda (err)
+           (lwarn 'org-roam :warning "%s for %s (%s) in %s"
+                  (error-message-string err)
+                  title id file))
+         [:insert :into nodes
+                  :values $v1]
+         (vector id file level pos todo priority
+                 scheduled deadline title properties olp))
+        (when tags
+          (org-roam-db-query
+           [:insert :into tags
+		    :values $v1]
+           (mapcar (lambda (tag)
+                     (vector id (substring-no-properties tag)))
+                   tags)))
+        (md-roam-db-insert-aliases)
+        (md-roam-db-insert-refs)))))
 
-(defcustom md-roam-use-markdown-file-links nil
-  "Defines if Md-roam extracts links defined via Markdown syntax.
-Default is nil. If enabled, Md-roam searches the buffer for links
-  [descriptoin](path/to/file.ext)."
+(defun md-roam-db-insert-wiki-links ()
+  "Insert Markdown wiki links in current buffer into Org-roam cache."
+  (org-with-point-at (md-roam-get-yaml-front-matter-endpoint)
+    (let ((type "id")
+          (source (md-roam-get-id))
+          (properties (list :outline nil)))
+      (when source
+        (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
+          (let* ((name (match-string-no-properties 1))
+                 (node (or (org-roam-node-from-title-or-alias name)
+                           (org-roam-node-create :id name)))
+                 (path (org-roam-node-id node)))
+            ;; insert to cache the link only there is a file for the
+            ;; destination node
+            (when (org-roam-node-file (org-roam-populate node))
+              (org-roam-db-query
+               [:insert :into links
+                        :values $v1]
+               (vector (point) source path type properties)))))))))
 
-  :type 'boolean
-  :group 'org-roam)
+(defun md-roam-db-insert-links ()
+  "Insert URL links in current buffer into Org-roam cache.
+  This is for refs."
+  (org-with-point-at (md-roam-get-yaml-front-matter-endpoint)
+    (let  ((source (md-roam-get-id))
+           (properties (list :outline nil)))
+      (while (re-search-forward md-roam-regex-link-inline nil t)
+        (when-let* ((url (match-string-no-properties 6))
+                    (type (url-type (url-generic-parse-url url)))
+                    (path (progn (string-match org-link-plain-re url)
+	                         (match-string-no-properties 2 url))))
+          (org-roam-db-query
+           [:insert :into links
+                    :values $v1]
+           (vector (point) source path type properties)))))))
+
+(defun md-roam-db-insert-citations ()
+  "Insert data for citations in the current buffer into Org-roam cache.
+The citation is defined in Pandoc syntax such as
+\"[@citation-key]\"."
+  (org-with-point-at (md-roam-get-yaml-front-matter-endpoint)
+    (let ((source (md-roam-get-id))
+          ;; TODO outline path always nil
+          (properties (list :outline nil)))
+      (when source
+        (while (re-search-forward md-roam-regex-in-text-citation-2 nil t)
+          (when-let
+              ;; remove "@" for key
+              ((key (match-string-no-properties 2)))
+            (org-roam-db-query
+             [:insert :into citations
+                      :values $v1]
+             (vector source key (match-beginning 2) properties))))))))
+
+(defun md-roam-db-insert-aliases ()
+  "Insert aliases in current buffer into Org-roam cache.
+The aliases must be defined witin the frontmatter.
+
+Aliases must be defined within square brakets:
+    [\"alias1\", \"alias of this note\"]
+
+TODO: Other formats?"
+  (when-let* ((node-id (md-roam-get-id))
+              (frontmatter (md-roam-get-yaml-front-matter))
+              (aliases (and frontmatter
+                            (string-match md-roam-regex-aliases frontmatter)
+                            (md-roam--yaml-seq-to-list
+                             (match-string-no-properties 2 frontmatter)))))
+    (org-roam-db-query [:insert :into aliases
+                                :values $v1]
+                       (mapcar (lambda (alias)
+                                 (vector node-id alias))
+                               aliases))))
+
+(defun md-roam-db-insert-refs ()
+  "Insert refs in current buffer into Org-roam cache.
+The refs must be defined witin the frontmatter.
+
+TODO other formats?"
+  (when-let* ((node-id (md-roam-get-id))
+              (frontmatter (md-roam-get-yaml-front-matter))
+              (refs (and frontmatter
+                         (string-match md-roam-regex-ref-keys frontmatter)
+                         (split-string-and-unquote
+                          (match-string-no-properties 2 frontmatter)))))
+    (let (rows)
+      (dolist (ref refs)
+        (save-match-data
+          (cond ((string-match org-link-plain-re ref)
+                 (push (vector node-id (match-string 2 ref) (match-string 1 ref)) rows))
+                (t
+                 (push (vector node-id ref "cite") rows)))))
+      (when rows
+        (org-roam-db-query [:insert :into refs
+                            :values $v1]
+                           rows)))))
+
+;;------------------------------------------------------------------------------
+;;;;; Functions for other commands: node-insert and follow-wiki-link
+
+(cl-defun md-roam-node-insert (&optional filter-fn &key templates info)
+  "Find an Org-roam node and insert (where the point is) an \"id:\" link to it.
+FILTER-FN is a function to filter out nodes: it takes an `org-roam-node',
+and when nil is returned the node will be filtered out.
+The TEMPLATES, if provided, override the list of capture templates (see
+`org-roam-capture-'.)
+The INFO, if provided, is passed to the underlying `org-roam-capture-'."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (unwind-protect
+        ;; Group functions together to avoid inconsistent state on quit
+        (atomic-change-group
+          (let* (region-text
+                 beg end
+                 (_ (when (region-active-p)
+                      (setq beg (set-marker (make-marker) (region-beginning)))
+                      (setq end (set-marker (make-marker) (region-end)))
+                      (setq region-text (org-link-display-format (buffer-substring-no-properties beg end)))))
+                 (node (org-roam-node-read region-text filter-fn))
+                 (description (or region-text
+                                  (org-roam-node-formatted node))))
+            (if (org-roam-node-id node)
+                (progn
+                  (when region-text
+                    (delete-region beg end)
+                    (set-marker beg nil)
+                    (set-marker end nil))
+                  (insert (concat "[["
+                                  (cond
+                                   ((eq md-roam-node-insert-type 'id)
+                                    (concat (org-roam-node-id node) "]] " description))
+                                   ((eq md-roam-node-insert-type 'title-or-alias)
+                                    (concat (org-roam-node-title node) "]]")))))
+                  ;; for advice
+                  t)
+              (org-roam-capture-
+               :node node
+               :info info
+               :templates templates
+               :props (append
+                       (when (and beg end)
+                         (list :region (cons beg end)))
+                       (list :insert-at (point-marker)
+                             :link-description description
+                             :finalize 'insert-link)))
+              ;; for advice
+              t)))
+      (deactivate-mark)
+      ;; for advice
+      t)))
+
+(defun md-roam-follow-wiki-link (name &optional _other)
+  "`markdown-follow-wiki-link'"
+  (when (org-roam-file-p (buffer-file-name (buffer-base-buffer)))
+    (if-let* ((node (or (org-roam-node-from-title-or-alias name)
+                        (org-roam-node-create :id name)))
+              (node-populated (org-roam-populate node))
+              (file (org-roam-node-file node-populated)))
+        (when file (find-file file))
+      (message (format "No Org-roam node found for \"%s\"" name))
+      ;; TODO the source file needs to be saved again to update link for the
+      ;; backlink to be cached.  This should be in the capture finaliztion
+      ;; procss after the new buffer is saved (aborted should not be saved)
+      (org-roam-capture-
+       :node (org-roam-node-create :title name)
+       :props '(:finalize find-file)))
+    t))
+
+;;------------------------------------------------------------------------------
+;;;;; Functions for `org-roam-capture'
+
+(defun md-roam-id-get (&optional _pom _create _prefix)
+  "This is meant to replace `org-id-get' for markdown buffers.
+`org-roam-capture' process tries to create and add ID in the
+Org's property drawer for a new file is being created.  For
+markdown files, this should be prevented.  We can achieve this
+because currently this function does not implement the create
+process \(for _create argument\).
+
+TODO CREATE process to insert a new ID within frontmatter."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (md-roam-get-id)))
+
+;;------------------------------------------------------------------------------
+;;;;; Functions for `org-roam-buffer'
+
+(defun md-roam-node-at-point (&optional _assert)
+  "Return the node at point.
+If ASSERT, throw an error."
+  (when (and (buffer-file-name (buffer-base-buffer))
+             (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
+    (org-roam-populate (org-roam-node-create :id (md-roam-get-id)))))
+
+;;------------------------------------------------------------------------------
+;;;;; Get functions, mainly for properties in frontmatter
+
+(defun md-roam-get-yaml-front-matter ()
+  "Return the text of the YAML front matter of the current buffer.
+Return nil if the front matter does not exist, or incorrectly delineated by
+'---'.  The front matter is required to be at the beginning of the file."
+
+  (save-excursion
+    (goto-char (point-min))
+    (when-let
+        ((startpoint (re-search-forward
+                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
+         ;; The beginning needs to be in the beginning of buffer
+         (endpoint (re-search-forward
+                    md-roam-regex-yaml-font-matter-ending nil t 1)))
+      (buffer-substring-no-properties startpoint endpoint))))
+
+(defun md-roam-get-yaml-front-matter-endpoint ()
+  "Return the endpoint of the YAML front matter of the current buffer.
+Return nil if the front matter does not exist, or incorrectly delineated by
+'---'.  The front matter is required to be at the beginning of the file."
+
+  (save-excursion
+    (goto-char (point-min))
+    (when-let
+        ((startpoint (re-search-forward
+                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
+         ;; The beginning needs to be in the beginning of buffer
+         (endpoint (re-search-forward
+                    md-roam-regex-yaml-font-matter-ending nil t 1)))
+      endpoint)))
+
+(defun md-roam-get-tags ()
+  "Get tags defined in the Zettlr style within frontmatter."
+  (let ((endpoint (md-roam-get-yaml-front-matter-endpoint)))
+    (cond (endpoint
+           (save-excursion
+             (let (tags)
+               (goto-char (point-min))
+               (while (re-search-forward md-roam-regex-tags-zettlr-style endpoint t)
+                 (let ((tag (match-string-no-properties 2)))
+                   (when tag
+                     (setq tags
+                           ;; Remove the first char @ or #
+                           (append tags (list (substring tag 1)))))))
+               tags))))))
+
+(defun md-roam-get-title ()
+  "Extract title from the current buffer (markdown file with YAML frontmatter).
+
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer.  No space is allowed before or after the delineator.
+
+It assumes:
+ (1) Current buffer is a markdonw file (but does not check it)
+ (2) It has title in the YAML frontmatter on top of the file
+ (3) The format is 'title: The Document Title'"
+
+  (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (when (and frontmatter
+               (string-match md-roam-regex-title frontmatter))
+      (match-string-no-properties 2 frontmatter))))
+
+(defun md-roam-get-id ()
+  "Extract id from the current buffer (markdown file with YAML frontmatter).
+
+This function looks for the YAML frontmatter delineator '---' begining of
+the buffer.  No space is allowed before or after the delineator.
+
+It assumes:
+ (1) Current buffer is a markdonw file (but does not check it)
+ (2) It has title in the YAML frontmatter on top of the file
+ (3) The format is 'id: <string>'"
+
+  (let ((frontmatter (md-roam-get-yaml-front-matter)))
+    (when (and frontmatter
+               (string-match md-roam-regex-id frontmatter))
+      (match-string-no-properties 2 frontmatter))))
+
+(defun md-roam-id-get (&optional _pom _create _prefix)
+  "Can implement CREATE later."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (md-roam-get-id)))
 
 
-;;; Md-roam functions
+;;------------------------------------------------------------------------------
+;;;;; Utility functions
 
+(defun md-roam--markdown-file-p (path)
+  "Check if PATH is pointing to an org file.
+Return t or nil."
+  (let ((ext (org-roam--file-name-extension path)))
+    (string-equal ext md-roam-file-extension)))
 
 ;;;  Tell if a file is an .org file (or encrypted org file)
 (defun md-roam--org-file-p (path)
@@ -186,63 +583,6 @@ Return t or nil."
       (setq ext (org-roam--file-name-extension (file-name-sans-extension path))))
     (string= ext "org")))
 
-;;;  Extracting title from markdown files (YAML frontmatter)
-;;;  Add advice to org-roam--extract-and-format-titles
-
-(defun md-roam-get-yaml-front-matter ()
-  "Return the text of the YAML front matter of the current buffer.
-Return nil if the front matter does not exist, or incorrectly delineated by
-'---'. The front matter is required to be at the beginning of the file."
-
-  (save-excursion
-    (goto-char (point-min))
-    (when-let
-        ((startpoint (re-search-forward
-                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
-         ;The beginning needs to be in the beginning of buffer
-         (endpoint (re-search-forward
-                    md-roam-regex-yaml-font-matter-ending nil t 1)))
-      (buffer-substring-no-properties startpoint endpoint))))
-
-(defun md-roam-get-yaml-front-matter-endpoint ()
-  "Return the endpoint of the YAML front matter of the current buffer.
-Return nil if the front matter does not exist, or incorrectly delineated by
-'---'. The front matter is required to be at the beginning of the file."
-
-  (save-excursion
-    (goto-char (point-min))
-    (when-let
-        ((startpoint (re-search-forward
-                      md-roam-regex-yaml-font-matter-beginning 4 t 1))
-         ;The beginning needs to be in the beginning of buffer
-         (endpoint (re-search-forward
-                    md-roam-regex-yaml-font-matter-ending nil t 1)))
-      endpoint)))
-
-(defun org-roam--extract-titles-mdtitle ()
-  "Extract title from the current buffer (markdown file with YAML frontmatter).
-
-This function looks for the YAML frontmatter delineator '---' begining of
-the buffer. No space is allowed before or after the delineator.
-
-It assumes:
- (1) Current buffer is a markdonw file (but does not check it)
- (2) It has title in the YAML frontmatter on top of the file
- (3) The format is 'title: The Document Title Value'"
-
-    (let ((frontmatter (md-roam-get-yaml-front-matter)))
-    (cond (frontmatter
-           (when (string-match md-roam-regex-title frontmatter)
-             (list (match-string-no-properties 2 frontmatter)))))))
-
-(defun org-roam--extract-titles-mdalias ()
-  "Return list of aliases from the front matter section of the current buffer.
-Return nil if none."
-  (let ((frontmatter (md-roam-get-yaml-front-matter)))
-    (cond (frontmatter
-           (when (string-match md-roam-regex-aliases frontmatter)
-             (md-roam--yaml-seq-to-list (match-string-no-properties 2 frontmatter)))))))
-
 (defun md-roam--remove-single-quotes (str)
   "Check if STR is surrounded by single-quotes, and remove them.
 If not, return STR as is."
@@ -252,23 +592,31 @@ If not, return STR as is."
       str)))
 
 (defun md-roam--yaml-seq-to-list (seq)
-  "Return a list from YAML SEQ formatted in the flow style.
-SEQ = sequence, it's an array. At the moment, only the flow style works.
+  "Return a list from YAML SEQ formatted in the flow style.  SEQ = sequence,
+it's an array.  At the moment, only the flow style works.
 
-See the spec at https://yaml.org/spec/1.2/spec.html
-  Flow style: !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ]."
+See the spec at https://yaml.org/spec/1.2/spec.html Flow style:
 
-;; The items in the sequence (array) can be separated by different ways.
-;;   1. Spaces like the example from the spec above
-;;   2. Single-quotes 'item'
-;;   3. Double-quotes "item"
-;; Do not escape the singe- or double-quotations. At the moment, that does
-;; lead to error
+    !!seq [ Clark Evans, Ingy döt Net, Oren Ben-Kiki ].
 
-;; The regexp is meant to to match YAML sequence formatted in the flow style.
-;; At the moment, only the flow style is considered. The number of spaces
-;; between the squeare bracket and the first/last item should not matter.
-;; [item1, item2, item3] and [ item1, item2, item3 ] should be equally valid.
+The items in the sequence (array) can be separated by different ways.
+
+    1. Spaces like the example from the spec above
+    2. Single-quotes 'item'
+    3. Double-quotes \"item\"
+
+Do not escape the singe- or double-quotations. At the moment,
+that doeslead to error.
+
+The regexp is meant to to match YAML sequence formatted in the
+flow style.  At the moment, only the flow style is
+considered. The number of spaces between the squeare bracket and
+the first/last item should not matter.
+
+    [item1, item2, item3]
+    [ item1, item2, item3 ]
+
+These should be equally valid."
 
   (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
         (separator ",\s*"))
@@ -276,255 +624,6 @@ See the spec at https://yaml.org/spec/1.2/spec.html
       (let ((items (split-string-and-unquote
                     (match-string-no-properties 2 seq) separator)))
         (mapcar #'md-roam--remove-single-quotes items)))))
-
-(defun org-roam--extract-titles-mdheadline ()
-  "Return the first headline of the current buffer.
-It does not look at the header level; it always returns the first one
-defined by '=', '-', or '#'."
-
-  (save-excursion
-    (goto-char (point-min))
-    (when (re-search-forward md-roam-regex-headline nil t 1)
-      (list (or (match-string-no-properties 1)
-                (match-string-no-properties 4))))))
-
-;;; Extract links in markdown file (wiki and pandocy-style cite)
-;;; Add advice to org-roam--extract-links
-
-(defun md-roam--extract-wiki-links (file-path)
-  "Extract links in the form of [[link]].
-FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
-  (let (md-links)
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
-        (let* ((to-file (concat (match-string-no-properties 1) "." md-roam-file-extension-single))
-               (end (match-end 1))
-               (begin-of-block)
-               (end-of-block)
-               (content)
-               (link-type "file"))
-          ;; get the text block = content around the link as context
-          (when (/= (point)(point-max))(forward-sentence))
-          (setq end-of-block (point))
-          (backward-sentence)
-          (setq begin-of-block (point))
-          (setq content (buffer-substring-no-properties begin-of-block end-of-block))
-          (goto-char end) ; move back to the end of the regexp for the loop
-          (setq md-links
-                (append md-links
-                        (list (vector file-path ; file-from
-                                      (file-truename (expand-file-name to-file (file-name-directory file-path))) ; file-to
-                                      link-type
-                                      (list :content content :point begin-of-block)))))))) ; properties
-    md-links))
-
-(defun md-roam--extract-cite-links (file-path)
-  "Extract cites defined by @bibkey.
-FILE-PATH is mandatory as `org-roam--extract-links' identifies it."
-  (let (md-cite-links)
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward md-roam-regex-in-text-citation-2 nil t)
-        (let* ((to-file (match-string-no-properties 2))
-               (end (match-end 1))
-               (begin-of-block)
-               (end-of-block)
-               (content)
-               (link-type "cite"))
-          (forward-paragraph)
-          (setq end-of-block (point))
-          (backward-paragraph)
-          (setq begin-of-block (point))
-          (setq content (buffer-substring-no-properties begin-of-block end-of-block))
-          (goto-char end) ; move back to the end of the regexp for the loop
-          (setq md-cite-links
-                (append md-cite-links
-                        (list (vector file-path ; file-from
-                                      to-file
-                                      link-type
-                                      (list :content content :point begin-of-block))))))))  ; properties
-    md-cite-links))
-
-(defun md-roam--extract-file-links (file-path)
-  "Extract file links specified in the Markdwon syntax in FILE-PATH.
-File links are defined with [description](path/to/file.ext).
-When the path is an URL -- http:// https://, or file:// etc. -- it is ignored."
-  (let (md-file-links)
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward md-roam-regex-link-inline nil t)
-        (let ((imagep (match-string-no-properties 1))
-               (link (match-string-no-properties 6))
-               (begin-of-block)
-               (end (match-end 8))
-               (end-of-block)
-               (content)
-               (link-type "file"))
-          (when (and (not imagep)
-                     (not (url-type (url-generic-parse-url link))))
-            ;; get the text block = content around the link as context
-            (when (/= (point)(point-max))(forward-sentence))
-            (setq end-of-block (point))
-            (backward-sentence)
-            (setq begin-of-block (point))
-            (setq content (buffer-substring-no-properties begin-of-block end-of-block))
-            (goto-char end) ; move back to the end of the regexp for the loop
-            (setq md-file-links
-                  (append md-file-links
-                          (list
-                           (vector file-path ; file-from
-                                   (file-truename
-                                    (expand-file-name (url-filename (url-generic-parse-url link))
-                                                      (file-name-directory file-path))) ; file-to
-                                   link-type
-                                   (list :content content :point begin-of-block)))))))))
-    md-file-links))
-
-(defun md-roam--extract-links (original-extract-links &optional file-path)
-  "Add markdown links (wiki and cite) for FILE-PATH to the org-roam equivalent.
-ORIGINAL-EXTRACT-LINKS is supplemented with md-roam functions.
-It should be used with 'advice-add' and :around ."
-
-  (require 'org-ref nil t)
-  (let* ((file-path (or file-path
-                      org-roam-file-name
-                      (buffer-file-name)))
-         (links '())
-         (md-links (md-roam--extract-wiki-links file-path))
-         (md-cite-links (md-roam--extract-cite-links file-path))
-         (md-file-links '()))
-    (when (or (md-roam--org-file-p file-path)
-              md-roam-use-org-file-links) ;For [[file:file.ext][desc]] within md
-      (setq links (apply original-extract-links file-path nil)))
-    (when md-roam-use-markdown-file-links ;For [description](link) syntax
-      (setq md-file-links (md-roam--extract-file-links file-path)))
-    (when md-links
-      (setq links (append md-links links)))
-    (when md-file-links
-      (setq links (append md-file-links links)))
-    (when md-cite-links
-      (setq links (append md-cite-links links)))
-    links))
-
-(advice-add 'org-roam--extract-links :around #'md-roam--extract-links)
-
-;;; Md-roam extract ref via regex
-(defun md-roam--extract-ref-regex ()
-  "Extract roam_key from current buffer; return the type and the key.
-Use regex instead of `org-roam--extract-global-props'.
-Return cons of (type . key). Type is always 'file' for now."
-
-    (let ((frontmatter (md-roam-get-yaml-front-matter)))
-    (cond (frontmatter
-           (when (string-match md-roam-regex-ref-key frontmatter)
-             (list (cons "cite" (match-string-no-properties 2 frontmatter))))))))
-
-(defun md-roam--extract-ref (original-extract-refs)
-  "Extract roam_key from current buffer.
-If current buffer is Org file, use ORIGINAL-EXTRACT-REF:
-`org-roam--extract-ref'.
-If not, use Md-roam specific regex to search within YAML front matter.
-It is meant to be used with `advice-add' :around."
-
-  (if md-roam-use-org-extract-ref
-      (funcall original-extract-refs)
-    (md-roam--extract-ref-regex)))
-
-(advice-add 'org-roam--extract-refs :around #'md-roam--extract-ref)
-
-;;;; Adapt behaviour of org-roam-insert
-;;;; Add advice to 'org-roam--format-link
-
-(defun md-roam--format-link (target &optional description _type _link-type)
-  "Formats a [[wikilink]] for a given file TARGET, link
-DESCRIPTION.  _TYPE and _LINK-TYPE are not currently used for
-Md-roam.  In Org-roam it differentiates file vs id to construct a
-link.
-
-Add advice to 'org-roam--format-link' within 'org-roam-insert'.
-Customize `md-roam-file-extension-single' to define the
-extesion (e.g. md) that follows this behaviour."
-
-  (let* ((target (org-roam-link-get-path target))
-         (ext (org-roam--file-name-extension target)))
-    (if (string= ext md-roam-file-extension-single)
-        (let* ((here (ignore-errors
-                       (-> (or (buffer-base-buffer)
-                               (current-buffer))
-                           (buffer-file-name)
-                           (file-truename)
-                           (file-name-directory)))))
-          (concat "[[" (file-name-sans-extension (if here
-                                                     (file-relative-name target here)
-                                                   target))
-                  "]]"
-                  " " description))
-      nil)))
-
-(advice-add 'org-roam-format-link :before-until #'md-roam--format-link)
-
-(defun org-roam--extract-tags-md-buffer (_file)
-  "Extracts tags defined in the Zettlr style."
-  (save-excursion
-    (let (tags-list)
-      (goto-char (point-min))
-      (while (re-search-forward md-roam-regex-tags-zettlr-style nil t)
-        (let ((tag (match-string-no-properties 2)))
-          (when tag
-            (setq tags-list (append tags-list (list tag))))))
-      tags-list)))
-
-(defun org-roam--extract-tags-md-frontmatter (_file)
-  "Extracts tags defined in the Zettlr style only within front matter."
-
-  (let ((endpoint (md-roam-get-yaml-front-matter-endpoint)))
-    (cond (endpoint
-           (save-excursion
-             (let (tags-list)
-               (goto-char (point-min))
-               (while (re-search-forward md-roam-regex-tags-zettlr-style endpoint t)
-                 (let ((tag (match-string-no-properties 2)))
-                   (when tag
-                     (setq tags-list
-                           (append tags-list (list tag))))))
-               tags-list))))))
-
-(defun md-roam--extract-headlines (original-extract-headlines &optional file-path)
-  "Extract headline org-id's for backlinks if FILE-PATH is org file.
-This extraction is done via ORIGINAL-EXTRACT-HEADLINES fn:
-`org-roam--extract-headlines'. Return nil if not org files.
-It is meant to be used with `advice-add' :around."
-
-  (let* ((file-path (or file-path
-                        (file-truename (buffer-file-name)))))
-    (if (md-roam--org-file-p file-path)
-        (apply original-extract-headlines file-path nil)
-      nil)))
-
-(advice-add 'org-roam--extract-headlines :around #'md-roam--extract-headlines)
-
-;;;; Add advice to org-roam-db-build-cache
-
-(defun md-roam-add-message-to-db-build-cache (&optional force)
-  "Add a message to the return message from `org-roam-db-build-cache'.
-This is to simply indicate that md-roam is active. FORCE does not do anythying."
-  (when force) ;do nothing
-  (when md-roam-verbose
-    (message "md-roam is active")))
-
-(advice-add 'org-roam-db-build-cache :before #'md-roam-add-message-to-db-build-cache)
-
-;;;; Add advice to org-roam--get-roam-buffers
-;;;; This is for org-roam-swtich-to-buffer
-
-(defun md-roam--get-roam-buffers ()
-  "Return all buffers (md and org) that are Org-roam files."
-
-  (--filter (org-roam--org-roam-file-p (buffer-file-name it))
-            (buffer-list)))
-
-(advice-add 'org-roam--get-roam-buffers  :override #'md-roam--get-roam-buffers )
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
