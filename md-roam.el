@@ -50,13 +50,19 @@
 
 ;;;; Customization
 
+(defgroup md-roam nil
+  "Use markdown files in Org-roam."
+  :group 'org-roam
+  :prefix "md-roam-"
+  :link '(url-link :tag "Github" "https://github.com/nobiot/md-roam"))
+
 (defcustom md-roam-file-extension "md"
   "Define the extesion to be used for Md-roam within Org-roam directory.
 Unlike 'org-roam-file-extension', this is a single value, not a list.
 It is intended to be used for you to define a different markdown extension,
 such as .md and .markdown."
   :type 'string
-  :group 'org-roam)
+  :group 'md-roam)
 
 (defcustom md-roam-node-insert-type 'title-or-alias
   "Define whether ID or title/aliase should be inserted.
@@ -65,7 +71,7 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 \"[[ID]] title\"."
   :type '(choice (const :tag "Title or alias" title-or-alias)
 		 (const :tag "Node ID" ID))
-  :group 'org-roam)
+  :group 'md-roam)
   
 ;;;; Variables
 
