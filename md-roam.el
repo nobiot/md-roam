@@ -231,24 +231,29 @@ This function is meant to be used as advising function for
           (db-hash (caar (org-roam-db-query [:select hash :from files
 					             :where (= file $s1)] file-path))))
       (unless (string= content-hash db-hash)
-        (org-roam-with-file file-path nil
-	  (emacsql-with-transaction (org-roam-db)
-	    (save-excursion
-	      (org-roam-db-clear-file)
-	      (org-roam-db-insert-file)
-	      (md-roam-db-insert-file-node)
-	      (md-roam-db-insert-wiki-links)
-              (md-roam-db-insert-citations)
-              (md-roam-db-insert-links)
-              ;; For before-until advice
-              t)))))))
+        (md-roam-db-do-update))
+        ;; For before-until advice
+      t)))
+
+(defun md-roam-db-do-update (&optional file-path _)
+  "Update db cache without checking if the file has been changed.
+Requied for wiki link capture."
+  (let ((path (or file-path (buffer-file-name (buffer-base-buffer)))))
+    (emacsql-with-transaction (org-roam-db)
+      (save-excursion
+        (org-roam-db-clear-file)
+        (org-roam-db-insert-file)
+        (md-roam-db-insert-file-node)
+        (md-roam-db-insert-wiki-links)
+        (md-roam-db-insert-citations)
+        (md-roam-db-insert-links)))))
 
 (defun md-roam-db-insert-file-node ()
   "Insert the file-level node into the Org-roam cache."
   ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
   ;; `markdown-mode' needs to be explicitly turned back on.
   ;; TODO gfm-mode
-  (markdown-mode)
+  ;; (markdown-mode)
   ;; Run org-roam hooks to re-set after-save-hooks, etc.
   (run-hooks 'org-roam-find-file-hook)
   ;; `org-with-point-at' macro does not seem to assume the buffer is Org
@@ -451,8 +456,20 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       ;; procss after the new buffer is saved (aborted should not be saved)
       (org-roam-capture-
        :node (org-roam-node-create :title name)
-       :props '(:finalize find-file)))
+       :props '(:finalize md-find-file)))
     t))
+
+;;;; Capture needs to update the cache when wikilink does not have a target file.
+
+(defun md-find-file ()
+  "."
+  (let ((new-file (org-roam-capture--get :new-file)))
+    (unless org-note-abort
+      (when-let ((original-buf (org-capture-get :original-buffer)))
+        (with-current-buffer original-buf
+          (md-roam-db-do-update))
+        (find-file new-file)))))
+
 
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-capture'
