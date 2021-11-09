@@ -196,14 +196,20 @@ It is recommended it be turned on before
     ;; This avoids capture process to add ID in the Org property drawer
     (advice-add #'org-id-get :before-until #'md-roam-id-get)
     ;; `org-roam-mode' buffer
-    (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point))
+    (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
+    ;; Completion-at-point
+    ;; Append to the back of the functions list so that md-roam's one get called
+    ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
+    (add-to-list 'org-roam-completion-functions
+                 #'md-roam-complete-wiki-link-at-point 'append))
    (t
     ;; Deactivate
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
     (advice-remove #'org-id-get #'md-roam-id-get)
-    (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point))))
+    (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
+    (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
 
@@ -252,7 +258,6 @@ Requied for wiki link capture."
   "Insert the file-level node into the Org-roam cache."
   ;; `org-roam-db-update-file' turns the mode to org-mode (in `org-roam-with-file' macro)
   ;; `markdown-mode' needs to be explicitly turned back on.
-  ;; TODO gfm-mode
   ;; (markdown-mode)
   ;; Run org-roam hooks to re-set after-save-hooks, etc.
   (run-hooks 'org-roam-find-file-hook)
@@ -442,14 +447,22 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       ;; for advice
       t)))
 
-(defun md-roam-follow-wiki-link (name &optional _other)
-  "`markdown-follow-wiki-link'"
+(defun md-roam-follow-wiki-link (name &optional other)
+  "Follow wiki link if there is the linked file exists.
+If the linked file does not yet exist, call `org-roam-find-node'
+to capture a new file with using the text as the title.
+
+It is meant to advice `markdown-follow-wiki-link'.
+
+When OTHER is non-nil by using prefix argument, open the file in
+another window.  This is not relevant if file does not exist."
   (when (org-roam-file-p (buffer-file-name (buffer-base-buffer)))
     (if-let* ((node (or (org-roam-node-from-title-or-alias name)
                         (org-roam-node-create :id name)))
               (node-populated (org-roam-populate node))
               (file (org-roam-node-file node-populated)))
-        (when file (find-file file))
+        (when file
+          (if other (find-file-other-window file) (find-file file)))
       (message (format "No Org-roam node found for \"%s\"" name))
       ;; TODO the source file needs to be saved again to update link for the
       ;; backlink to be cached.  This should be in the capture finaliztion
@@ -460,7 +473,6 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
     t))
 
 ;;;; Capture needs to update the cache when wikilink does not have a target file.
-
 (defun md-find-file ()
   "."
   (let ((new-file (org-roam-capture--get :new-file)))
@@ -469,7 +481,6 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
         (with-current-buffer original-buf
           (md-roam-db-do-update))
         (find-file new-file)))))
-
 
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-capture'
@@ -581,6 +592,22 @@ It assumes:
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
     (md-roam-get-id)))
 
+;;------------------------------------------------------------------------------
+;;;;; Completion at point
+
+(defun md-roam-complete-wiki-link-at-point ()
+  "Complete wiki link at point to an existing Org-roam node.
+It puts the title, not IDs."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (let (roam-p start end)
+      (when (org-in-regexp org-roam-bracket-completion-re 1)
+        (setq start (match-beginning 2)
+              end (match-end 2))
+        (list start end
+              (org-roam--get-titles)
+              :exit-function
+              (lambda (str &rest _)
+                (forward-char 2)))))))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Utility functions
