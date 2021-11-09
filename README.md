@@ -68,7 +68,7 @@ Additionally, you can use `org-roam-capture-templates` for Markdown files like t
     :unnarrowed t))
 ```
 
-For interactive commands, you can use the Org-roam's standard ones. There is no specific commands for Md-roam:
+For interactive commands, you can use Org-roam's standard ones. There is no specific commands for Md-roam:
 
 ```emacs-lisp
 ;;;; Org-roam
