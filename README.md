@@ -11,19 +11,72 @@ for your Zettelkasten-style note-taking and backlinks.
 
 2. `#tag` support to categorize notes
 
-3. Specify notes as reference materials (literature notes / bibliographic notes) with `roam_refs:`
+3. Note as a reference material (literature notes or notes on website) with `roam_refs:`
 
-4. Aliases of a note with `roam_aliases:` in the YAML array syntax with `["alias1", "alias two" ]`
+4. Aliases of a note with `roam_aliases:` in the YAML array syntax with `["alias1", "alias two"]`
 
-5. Link notes for backlinks with using `[[wiki-link]]` syntax and "in-line search" with `Company` or `Corfu`; the name is the **title** of a note
+5. Link with `[[wiki-link]]` syntax that appears as a backlink and "in-line search" with `Company` or `Corfu`; you can use the **title** or an **alias** of a note
 
 6. Citations with Pandoc style `[@citekey]`, `@citekey` `-@citekey`, etc. for Markdown files; for Org, Org-ref or Org-cite styles as Org-roam support them
 
-7. Both Markdown and Org notes can cite a reference; they appear in the reflink section
+7. Markdown and Org citations for reference materials; they appear in the reflink section
 
-8. Create backlinks between Org and Markdown files both ways; you can mix both formats in a single Org-roam database
+8. Backlinks between Org and Markdown files both ways; you can mix both formats in a single Org-roam database
 
 9. Org-roam standard backlink buffer with no modification to the database schema and backlink buffer
+
+# Getting Started
+
+## Installation
+
+This package is not available on MELPA or ELPA. Manual installation is required.
+
+Download or clone this repo, put the `.el` file into your load-path, and put
+something like this in your init file.
+
+```emacs-lisp
+(add-to-list  'load-path "path/to/org-transclusion/")
+```
+
+## Basic Configuration
+
+Org-roam must be configured before Md-roam. As a minimal configuration for Md-roam, these should be sufficient:
+
+- `(setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension`
+- `(md-roam-mode 1) ; md-roam-mode needs to be active before org-roam-db-sync`
+- `(setq md-roam-file-extension-single "md") ; Default is "md". Specify an extension such as "markdown"`
+
+```emacs-lisp
+(setq org-roam-v2-ack t)
+(require 'org-roam)
+(setq org-roam-directory (file-truename "path/to/org-roam-directory"))
+(setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension
+(add-to-list 'load-path "path/to/md-roam/")
+(require 'md-roam)
+(md-roam-mode 1) ; md-roam-mode needs to be active before org-roam-db-sync
+(setq md-roam-file-extension-single "md") ; Default is "md". Specify an extension such as "markdown"
+(org-roam-db-autosync-mode 1) ; Org-roam db autosync-mode
+```
+
+Additionally, you can use `org-roam-capture-templates` for Markdown files like this:
+
+```emacs-lisp
+(add-to-list 'org-roam-capture-templates
+    '("m" "Markdown" plain "" :target
+        (file+head "%<%Y-%m-%dT%H%M%S>.md"
+"---\ntitle: ${title}\nid: %<%Y-%m-%dT%H%M%S>\ncategory: \n---\n")
+    :unnarrowed t))
+```
+
+For interactive commands, you can use the Org-roam's standard ones. There is no specific commands for Md-roam:
+
+```emacs-lisp
+;;;; Org-roam
+(define-key global-map (kbd "C-c n f") #'org-roam-node-find)
+(define-key global-map (kbd "C-c n c") #'org-roam-capture)
+(define-key global-map (kbd "C-c n i") #'org-roam-node-insert)
+(define-key global-map (kbd "C-c n l") #'org-roam-buffer-toggle)
+```
 
 # License
 
