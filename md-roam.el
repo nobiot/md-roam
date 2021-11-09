@@ -5,7 +5,7 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>
 ;; URL: https://github.com/nobiot/md-roam
 ;; Version: 2.0.0
-;; Last Modified: 2021-11-08
+;; Last Modified: 2021-11-09
 ;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
@@ -38,15 +38,17 @@
 ;;;; Requirements
 
 (eval-when-compile (require 'subr-x))
+;; Markdown
 (require 'markdown-mode)
+;; Org
 (require 'org)
-(require 'org-macs)
 (require 'ol)
-(require 'emacsql)
-;;(require 'emacsql-sqlite)
+(require 'org-macs)
+;; Org-roam and its prequisites directly used by Md-roam
 (require 'org-roam)
 (require 'org-roam-db)
 (require 'org-roam-utils)
+(require 'emacsql)
 
 ;;;; Customization
 
@@ -74,6 +76,10 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
   :group 'md-roam)
   
 ;;;; Variables
+
+(defvar md-roam-db-compatible-version 17
+  "`Compatible 'org-roam-db-version'.
+ This is as described in \(info \"(org-roam\)Developer's Guide to Org-roam\"\).")
 
 ;;;; These regular expressions are modified version of
 ;;;; `markdown-regex-yaml-metadata-border.
@@ -188,20 +194,26 @@ It is recommended it be turned on before
   :global t
   (cond
    (md-roam-mode
-    ;; Org-roam cache
-    (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
-    ;; Other interactive commands
-    (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
-    (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
-    ;; This avoids capture process to add ID in the Org property drawer
-    (advice-add #'org-id-get :before-until #'md-roam-id-get)
-    ;; `org-roam-mode' buffer
-    (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
-    ;; Completion-at-point
-    ;; Append to the back of the functions list so that md-roam's one get called
-    ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
-    (add-to-list 'org-roam-completion-functions
-                 #'md-roam-complete-wiki-link-at-point 'append))
+    ;; Check org-roam-db-version
+    ;; This is as described in (info "(org-roam)Developer's Guide to Org-roam")
+    (if (not (eq org-roam-db-version md-roam-db-compatible-version))
+        (progn
+          (message (format "Md-roam not turned on; `org-roam-db-version' %d is not compatible" org-roam-db-version))
+          (setq md-roam-mode nil))
+      ;; Org-roam cache
+      (advice-add #'org-roam-db-update-file :before-until #'md-roam-db-update-file)
+      ;; Other interactive commands
+      (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
+      (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
+      ;; This avoids capture process to add ID in the Org property drawer
+      (advice-add #'org-id-get :before-until #'md-roam-id-get)
+      ;; `org-roam-mode' buffer
+      (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
+      ;; Completion-at-point
+      ;; Append to the back of the functions list so that md-roam's one get called
+      ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
+      (add-to-list 'org-roam-completion-functions
+                   #'md-roam-complete-wiki-link-at-point 'append)))
    (t
     ;; Deactivate
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
