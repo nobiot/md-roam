@@ -6,7 +6,7 @@
 ;; URL: https://github.com/nobiot/md-roam
 ;; Version: 2.0.0
 ;; Last Modified: 2021-11-08
-;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdow-mode "2.5"))
+;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
 ;; This file is not part of GNU Emacs.
