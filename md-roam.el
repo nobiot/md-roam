@@ -79,7 +79,7 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 
 (defvar md-roam-db-compatible-version 17
   "`Compatible 'org-roam-db-version'.
- This is as described in \(info \"(org-roam\)Developer's Guide to Org-roam\"\).")
+This is as described in \(info \"(org-roam\)Developer's Guide to Org-roam\"\).")
 
 ;;;; These regular expressions are modified version of
 ;;;; `markdown-regex-yaml-metadata-border.
@@ -89,7 +89,7 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 (defvar md-roam-regex-yaml-font-matter-beginning
   "\\(^-\\{3\\}\\)$"
   "Regexp for the beginning of YAML front matter section.
-In markdown-mode, beginning and ending are the same: \"---\".")
+In `markdown-mode', beginning and ending are the same: \"---\".")
 
 (defvar md-roam-regex-yaml-font-matter-ending
   "\\(^-\\{3\\}\\)$"
@@ -159,7 +159,7 @@ This regexp is intended to be compatible with Zettlr:
      `#tag1 #tag-with-hyphen #tag_with_underscore'
 
 Note that iA Writer treats hyphen (-) as a word delimiter
-within a tag. That is, iA Writer treats #tag-hyphen tagged as
+within a tag.  That is, iA Writer treats #tag-hyphen tagged as
 #tag, and ignores `-hyphen'.
 
 If iA Writer's stricter style is preferred, the regexp should
@@ -169,7 +169,7 @@ be defined as:
 
 (defconst md-roam-regex-link-inline
   "\\(?1:!\\)?\\(?2:\\[\\)\\(?3:\\^?\\(?:\\\\\\]\\|[^]]\\)*\\|\\)\\(?4:\\]\\)\\(?5:(\\)\\(?6:[^)]*?\\)\\(?:\\s-+\\(?7:\"[^\"]*\"\\)\\)?\\(?8:)\\)"
-  "Copy of markdown-regex-link-inline from Markdown Mode.
+  "Copy of `markdown-regex-link-inline' from Markdown Mode.
 Regexp for inline links [description](link) and images ![description](link).
 
 Regular expression for a [text](file) or an image link ![text](file).
@@ -187,8 +187,7 @@ Group 8 matches the closing parenthesis.")
 ;;;###autoload
 (define-minor-mode md-roam-mode
   "Md-roam mode needs to be turned before `org-roam-db-sync'.
-It is recommended it be turned on before
-`org-roam-db-autosync-mode'."
+It needs to be turned on before `org-roam-db-autosync-mode'."
   :init-value nil
   :lighter "md-roam"
   :global t
@@ -242,29 +241,27 @@ It is recommended it be turned on before
   "Update Org-roam cache for FILE-PATH.
 This function is meant to be used as advising function for
 `org-roam-db-update-file.'"
-
   (when (md-roam--markdown-file-p (or file-path (buffer-file-name (buffer-base-buffer))))
-    (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
-    (let ((content-hash (org-roam-db--file-hash file-path))
+    (let ((buf (if file-path (find-file-noselect file-path) (current-buffer)))
+          (content-hash (org-roam-db--file-hash file-path))
           (db-hash (caar (org-roam-db-query [:select hash :from files
-					             :where (= file $s1)] file-path))))
-      (unless (string= content-hash db-hash)
-        (md-roam-db-do-update))
-        ;; For before-until advice
+					     :where (= file $s1)] file-path))))
+      (unless (string-equal content-hash db-hash)
+        (with-current-buffer buf (md-roam-db-do-update)))
+      ;; For before-until advice
       t)))
 
-(defun md-roam-db-do-update (&optional file-path _)
+(defun md-roam-db-do-update ()
   "Update db cache without checking if the file has been changed.
 Requied for wiki link capture."
-  (let ((path (or file-path (buffer-file-name (buffer-base-buffer)))))
-    (emacsql-with-transaction (org-roam-db)
-      (save-excursion
-        (org-roam-db-clear-file)
-        (org-roam-db-insert-file)
-        (md-roam-db-insert-file-node)
-        (md-roam-db-insert-wiki-links)
-        (md-roam-db-insert-citations)
-        (md-roam-db-insert-links)))))
+  (emacsql-with-transaction (org-roam-db)
+    (save-excursion
+      (org-roam-db-clear-file)
+      (org-roam-db-insert-file)
+      (md-roam-db-insert-file-node)
+      (md-roam-db-insert-wiki-links)
+      (md-roam-db-insert-citations)
+      (md-roam-db-insert-links))))
 
 (defun md-roam-db-insert-file-node ()
   "Insert the file-level node into the Org-roam cache."
@@ -331,7 +328,7 @@ Requied for wiki link capture."
 
 (defun md-roam-db-insert-links ()
   "Insert URL links in current buffer into Org-roam cache.
-  This is for refs."
+This is for refs."
   (org-with-point-at (md-roam-get-yaml-front-matter-endpoint)
     (let  ((source (md-roam-get-id))
            (properties (list :outline nil)))
@@ -460,8 +457,8 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       t)))
 
 (defun md-roam-follow-wiki-link (name &optional other)
-  "Follow wiki link if there is the linked file exists.
-If the linked file does not yet exist, call `org-roam-find-node'
+  "Follow wiki link NAME if there is the linked file exists.
+If the linked NAME does not yet exist, call `org-roam-find-node'
 to capture a new file with using the text as the title.
 
 It is meant to advice `markdown-follow-wiki-link'.
@@ -599,11 +596,6 @@ It assumes:
                (string-match md-roam-regex-id frontmatter))
       (match-string-no-properties 2 frontmatter))))
 
-(defun md-roam-id-get (&optional _pom _create _prefix)
-  "Can implement CREATE later."
-  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    (md-roam-get-id)))
-
 ;;------------------------------------------------------------------------------
 ;;;;; Completion at point
 
@@ -611,14 +603,14 @@ It assumes:
   "Complete wiki link at point to an existing Org-roam node.
 It puts the title, not IDs."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
-    (let (roam-p start end)
+    (let (start end)
       (when (org-in-regexp org-roam-bracket-completion-re 1)
         (setq start (match-beginning 2)
               end (match-end 2))
         (list start end
               (org-roam--get-titles)
               :exit-function
-              (lambda (str &rest _)
+              (lambda ()
                 (forward-char 2)))))))
 
 ;;------------------------------------------------------------------------------
@@ -648,8 +640,9 @@ If not, return STR as is."
       str)))
 
 (defun md-roam--yaml-seq-to-list (seq)
-  "Return a list from YAML SEQ formatted in the flow style.  SEQ = sequence,
-it's an array.  At the moment, only the flow style works.
+  "Return a list from YAML SEQ formatted in the flow style.
+SEQ = sequence, It's an array.  At the moment, only the flow
+style works.
 
 See the spec at https://yaml.org/spec/1.2/spec.html Flow style:
 
