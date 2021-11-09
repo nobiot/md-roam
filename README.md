@@ -54,7 +54,7 @@ Org-roam must be configured before Md-roam. As a minimal configuration for Md-ro
 (add-to-list 'load-path "path/to/md-roam/")
 (require 'md-roam)
 (md-roam-mode 1) ; md-roam-mode needs to be active before org-roam-db-sync
-(setq md-roam-file-extension-single "md") ; Default is "md". Specify an extension such as "markdown"
+(setq md-roam-file-extension "md") ; Default is "md". Specify an extension such as "markdown"
 (org-roam-db-autosync-mode 1) ; Org-roam db autosync-mode
 ```
 
