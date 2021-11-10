@@ -25,13 +25,11 @@ for your Zettelkasten-style note-taking and backlinks.
 
 9. Org-roam standard backlink buffer with no modification to the database schema and backlink buffer
 
-The graph function with Org-roam-ui is partially supported (as of 2021-11-10)
+10. Partial support by [Org-roam-ui (ORUI)](https://github.com/org-roam/org-roam-ui) (as of 2021-11-10)
+
 ![Graph and note preview by ORUI](./images/ORUI.png)
 
-"Partially correct" because the preview of note on panel on the right displays
-the Markdown note is not entirely compatible with the Markdown format yet. The
-headings with `#` are interpreted as Org's comment, so not displayed. The YAML
-front matter is not correctly rendered. All text information appears to be present but the underscore letter `_` are interpreted as an indicator for subscript.
+   - It's a "partial support" because the preview of note on panel on the right displays the Markdown note is not entirely compatible with the Markdown format yet. The headings with `#` are interpreted as Org's comment, so not displayed. The YAML front matter is not correctly rendered. All text information appears to be present but the underscore letter `_` are interpreted as an indicator for subscript.
 
 
 # Getting Started
