@@ -42,7 +42,7 @@ Download or clone this repo, put the `.el` file into your load-path, and put
 something like this in your init file.
 
 ```emacs-lisp
-(add-to-list  'load-path "path/to/org-transclusion/")
+(add-to-list  'load-path "path/to/md-roam")
 ```
 
 ## Basic Configuration
@@ -58,11 +58,11 @@ Org-roam must be configured before Md-roam. As a minimal configuration for Md-ro
 (require 'org-roam)
 (setq org-roam-directory (file-truename "path/to/org-roam-directory"))
 (setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension
-(add-to-list 'load-path "path/to/md-roam/")
+(add-to-list 'load-path "path/to/md-roam") ; installation as above
 (require 'md-roam)
-(md-roam-mode 1) ; md-roam-mode needs to be active before org-roam-db-sync
-(setq md-roam-file-extension "md") ; Default is "md". Specify an extension such as "markdown"
-(org-roam-db-autosync-mode 1) ; Org-roam db autosync-mode
+(md-roam-mode 1) ; md-roam-mode must be active before org-roam-db-sync
+(setq md-roam-file-extension "md") ; default "md". Specify an extension such as "markdown"
+(org-roam-db-autosync-mode 1) ; autosync-mode triggers db-sync. md-roam-mode must be already active
 ```
 
 Additionally, you can use `org-roam-capture-templates` for Markdown files like this:
