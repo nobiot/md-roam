@@ -610,7 +610,7 @@ It puts the title, not IDs."
         (list start end
               (org-roam--get-titles)
               :exit-function
-              (lambda ()
+              (lambda (&rest _)
                 (forward-char 2)))))))
 
 ;;------------------------------------------------------------------------------
