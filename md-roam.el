@@ -617,19 +617,12 @@ It puts the title, not IDs."
 ;;;;; Utility functions
 
 (defun md-roam--markdown-file-p (path)
-  "Check if PATH is pointing to an org file.
-Return t or nil."
+  "Return t if PATH is pointing to a markdown file.
+`md-roam-file-extension' defines the extension.
+Return nil if not."
+
   (let ((ext (org-roam--file-name-extension path)))
     (string-equal ext md-roam-file-extension)))
-
-;;;  Tell if a file is an .org file (or encrypted org file)
-(defun md-roam--org-file-p (path)
-  "Check if PATH is pointing to an org file.
-Return t or nil."
-  (let ((ext (org-roam--file-name-extension path)))
-    (when (string= ext "gpg")           ; Handle encrypted files
-      (setq ext (org-roam--file-name-extension (file-name-sans-extension path))))
-    (string= ext "org")))
 
 (defun md-roam--remove-single-quotes (str)
   "Check if STR is surrounded by single-quotes, and remove them.
