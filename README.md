@@ -87,6 +87,11 @@ For interactive commands, you can use Org-roam's standard ones. There is no spec
 
 ## "In-line search" with Company and Corfu
 
+With Md-roam, you can use completion-at-point for wiki links within Org-roam.
+
+[Corfu animation](./images/corfu.gif)
+
+
 For [Company](https://github.com/company-mode/company-mode), there is no specific configuration. Md-roam implements `completion-at-point` (or `capf`); use it as a Company backend. For more detail, refer to Company's documentation.
 
 For [Corfu](https://github.com/minad/corfu), add something like this below to get <kbd>Tab</kbd> to work for `corfu-mode`. Markdown-mode implements a function that does not let <kbd>Tab</kbd> use `complete-at-point` like Org-mode does.
