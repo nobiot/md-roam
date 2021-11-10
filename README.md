@@ -89,7 +89,7 @@ For interactive commands, you can use Org-roam's standard ones. There is no spec
 
 With Md-roam, you can use completion-at-point for wiki links within Org-roam.
 
-[Corfu animation](./images/corfu.gif)
+![Corfu animation](./images/corfu.gif)
 
 
 For [Company](https://github.com/company-mode/company-mode), there is no specific configuration. Md-roam implements `completion-at-point` (or `capf`); use it as a Company backend. For more detail, refer to Company's documentation.
