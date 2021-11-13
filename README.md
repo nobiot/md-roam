@@ -29,8 +29,6 @@ for your Zettelkasten-style note-taking and backlinks.
 
 ![Graph and note preview by ORUI](./images/ORUI.png)
 
-ORUI with Markdown files is already functional and useful for most cases. The links work. As of 2021-11-10, it's "partial support" because the preview of note on the right panel is not entirely compatible with the Markdown format yet -- it is designed for the Org format. The headings with `#` are interpreted as Org's comment, so not displayed. The YAML front matter is not correctly rendered. All text information appears to be present but the underscore `_` is interpreted as an indicator for subscript. 
-
 
 # Getting Started
 
