@@ -77,7 +77,7 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
   
 ;;;; Variables
 
-(defvar md-roam-db-compatible-version 17
+(defvar md-roam-db-compatible-version 18
   "`Compatible 'org-roam-db-version'.
 This is as described in \(info \"(org-roam\)Developer's Guide to Org-roam\"\).")
 
