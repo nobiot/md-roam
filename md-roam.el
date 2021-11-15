@@ -224,6 +224,36 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
 
 ;;;; Functions
 
+;;; File utilities
+;;; Macros seem to need to be defined before functions that use them
+(defmacro md-roam-with-file (file keep-buf-p &rest body)
+  "Execute BODY within FILE for Md-roam.
+If FILE is nil, execute BODY in the current buffer.
+Kills the buffer if KEEP-BUF-P is nil, and FILE is not yet visited."
+  (declare (indent 2) (debug t))
+  `(let* (new-buf
+          (auto-mode-alist nil)
+          (find-file-hook nil)
+          (buf (or (and (not ,file)
+                        (current-buffer)) ;If FILE is nil, use current buffer
+                   (find-buffer-visiting ,file) ; If FILE is already visited, find buffer
+                   (progn
+                     (setq new-buf t)
+                     (find-file-noselect ,file)))) ; Else, visit FILE and return buffer
+          res)
+     (with-current-buffer buf
+       (unless (equal major-mode 'markdown-mode)
+         ;; Don't delay mode hooks
+         ;; not done again.
+         (markdown-mode))
+       (setq res (progn ,@body))
+       (unless (and new-buf (not ,keep-buf-p))
+         (save-buffer)))
+     (if (and new-buf (not ,keep-buf-p))
+         (when (find-buffer-visiting ,file)
+           (kill-buffer (find-buffer-visiting ,file))))
+     res))
+
 ;;;;; Private
 ;;    None of the functions in Md-roam are meant to be interactive commands.
 ;;    This is because they are meant to extend Org-roam functions (mostly in
@@ -242,14 +272,15 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
 This function is meant to be used as advising function for
 `org-roam-db-update-file.'"
   (when (md-roam--markdown-file-p (or file-path (buffer-file-name (buffer-base-buffer))))
-    (let ((buf (if file-path (find-file-noselect file-path) (current-buffer)))
-          (content-hash (org-roam-db--file-hash file-path))
-          (db-hash (caar (org-roam-db-query [:select hash :from files
-					     :where (= file $s1)] file-path))))
-      (unless (string-equal content-hash db-hash)
-        (with-current-buffer buf (md-roam-db-do-update)))
-      ;; For before-until advice
-      t)))
+    (md-roam-with-file file-path nil
+        (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
+        (let ((content-hash (org-roam-db--file-hash file-path))
+              (db-hash (caar (org-roam-db-query [:select hash :from files
+					                 :where (= file $s1)] file-path))))
+          (unless (string= content-hash db-hash)
+            (md-roam-db-do-update))
+          ;; For before-until advice
+          t))))
 
 (defun md-roam-db-do-update ()
   "Update db cache without checking if the file has been changed.
