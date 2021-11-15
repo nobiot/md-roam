@@ -651,9 +651,9 @@ It puts the title, not IDs."
   "Return t if PATH is pointing to a markdown file.
 `md-roam-file-extension' defines the extension.
 Return nil if not."
-
-  (let ((ext (org-roam--file-name-extension path)))
-    (string-equal ext md-roam-file-extension)))
+  (when path
+    (let ((ext (org-roam--file-name-extension path)))
+      (string-equal ext md-roam-file-extension))))
 
 (defun md-roam--remove-single-quotes (str)
   "Check if STR is surrounded by single-quotes, and remove them.
