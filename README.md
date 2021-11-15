@@ -25,7 +25,7 @@ for your Zettelkasten-style note-taking and backlinks.
 
 9. Org-roam standard backlink buffer with no modification to the database schema and backlink buffer
 
-10. Partial support by [Org-roam-ui (ORUI)](https://github.com/org-roam/org-roam-ui)
+10. Graph and note preview by [Org-roam-ui (ORUI)](https://github.com/org-roam/org-roam-ui)
 
 ![Graph and note preview by ORUI](./images/ORUI.png)
 
