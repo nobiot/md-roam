@@ -74,7 +74,14 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
   :type '(choice (const :tag "Title or alias" title-or-alias)
 		 (const :tag "Node ID" ID))
   :group 'md-roam)
-  
+
+(defcustom md-roam-insert-link-function 'md-roam-insert-wiki-link
+  "Define the function name to format a link to insert.
+This is used by `org-roam-node-insertf' in `md-roam'."
+  :type '(choice (const :tag "Markdown wiki link" md-roam-insert-wiki-link)
+                 (const :tag "Markdown normal link" md-roam-insert-markdown-link))
+  :group 'md-roam)
+
 ;;;; Variables
 
 (defvar md-roam-db-compatible-version 18
@@ -463,12 +470,7 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  (insert (concat "[["
-                                  (cond
-                                   ((eq md-roam-node-insert-type 'id)
-                                    (concat (org-roam-node-id node) "]] " description))
-                                   ((eq md-roam-node-insert-type 'title-or-alias)
-                                    (concat (org-roam-node-title node) "]]")))))
+                  (insert (funcall md-roam-insert-link-function node))
                   ;; for advice
                   t)
               (org-roam-capture-
@@ -486,6 +488,27 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       (deactivate-mark)
       ;; for advice
       t)))
+
+(defun md-roam-insert-wiki-link (node)
+  "Return wiki link string for NODE.
+Used by `md-roam-node-insert'."
+    (concat "[["
+            (cond
+             ((eq md-roam-node-insert-type 'id)
+              (concat (org-roam-node-id node) "]] " description))
+             ((eq md-roam-node-insert-type 'title-or-alias)
+              (concat (org-roam-node-title node) "]]")))))
+
+(defun md-roam-insert-markdown-link (node)
+  "Return markdown link string for NODE.
+Used by `md-roam-node-insert'."
+  (concat "["
+                  (cond
+                   ((eq md-roam-node-insert-type 'id)
+                    (concat description "](" (org-roam-node-id node) "." md-roam-file-extension ")" ))
+                   ((eq md-roam-node-insert-type 'title-or-alias)
+                    (concat  (org-roam-node-title node) "]("
+                             (org-roam-node-id node) "." md-roam-file-extension ")")))))
 
 (defun md-roam-follow-wiki-link (name &optional other)
   "Follow wiki link NAME if there is the linked file exists.
