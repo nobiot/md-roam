@@ -371,14 +371,26 @@ This is for refs."
     (let  ((source (md-roam-get-id))
            (properties (list :outline nil)))
       (while (re-search-forward md-roam-regex-link-inline nil t)
-        (when-let* ((url (match-string-no-properties 6))
-                    (type (url-type (url-generic-parse-url url)))
-                    (path (progn (string-match org-link-plain-re url)
-	                         (match-string-no-properties 2 url))))
-          (org-roam-db-query
-           [:insert :into links
-                    :values $v1]
-           (vector (point) source path type properties)))))))
+        (let* ((url (match-string-no-properties 6))
+               (parsed-url (url-generic-parse-url url))
+               (type (if (url-type parsed-url)
+                         (url-type parsed-url)
+                       ;; potentially file with id
+                       "id"))
+               (filename (when (string-equal type "id")
+                           (buffer-file-name (find-file-noselect
+                                              (url-filename parsed-url)))))
+               (path (if filename
+                         (caar (org-roam-db-query [:select [id] :from nodes              
+                                                   :where (= file $s1)]
+                                                  filename))
+                       (string-match org-link-plain-re url)
+	               (match-string-no-properties 2 url))))
+          (when (and type source path)
+            (org-roam-db-query
+             [:insert :into links
+                      :values $v1]
+             (vector (point) source path type properties))))))))
 
 (defun md-roam-db-insert-citations ()
   "Insert data for citations in the current buffer into Org-roam cache.
