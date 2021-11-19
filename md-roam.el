@@ -208,6 +208,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (advice-add #'org-id-get :before-until #'md-roam-id-get)
       ;; `org-roam-mode' buffer
       (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
+      (advice-add #'org-roam-preview-get-contents :before-until #'md-roam-preview-get-contents)
       ;; Completion-at-point
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
@@ -220,6 +221,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
     (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
+    (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
     (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
@@ -546,6 +548,19 @@ If ASSERT, throw an error."
   (when (and (buffer-file-name (buffer-base-buffer))
              (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))
     (org-roam-populate (org-roam-node-create :id (md-roam-get-id)))))
+
+(defun md-roam-preview-get-contents (file pt)
+  "Get preview content for FILE at PT."
+  (when (md-roam--markdown-file-p file)
+    (save-excursion
+      (org-roam-with-temp-buffer file
+        (org-with-wide-buffer
+         (goto-char pt)
+         (let ((beg (progn (markdown-backward-paragraph)
+                           (point)))
+               (end (progn (markdown-forward-paragraph)
+                           (point))))
+           (string-trim (buffer-substring-no-properties beg end))))))))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Get functions, mainly for properties in frontmatter
