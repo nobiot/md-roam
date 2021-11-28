@@ -72,14 +72,7 @@ This is for `md-roam-node-insert'.  If 'title-and-alias, the
 resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 \"[[ID]] title\"."
   :type '(choice (const :tag "Title or alias" title-or-alias)
-		 (const :tag "Node ID" ID))
-  :group 'md-roam)
-
-(defcustom md-roam-insert-link-function 'md-roam-insert-wiki-link
-  "Define the function name to format a link to insert.
-This is used by `org-roam-node-insertf' in `md-roam'."
-  :type '(choice (const :tag "Markdown wiki link" md-roam-insert-wiki-link)
-                 (const :tag "Markdown normal link" md-roam-insert-markdown-link))
+                 (const :tag "Node ID" ID))
   :group 'md-roam)
 
 ;;;; Variables
@@ -285,7 +278,7 @@ This function is meant to be used as advising function for
         (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
         (let ((content-hash (org-roam-db--file-hash file-path))
               (db-hash (caar (org-roam-db-query [:select hash :from files
-					                 :where (= file $s1)] file-path))))
+                                                         :where (= file $s1)] file-path))))
           (unless (string= content-hash db-hash)
             (md-roam-db-do-update))
           ;; For before-until advice
@@ -317,15 +310,15 @@ Requied for wiki link capture."
              (title (or (md-roam-get-title)
                         (file-relative-name file org-roam-directory)))
              (pos (point))
-	     (todo nil)
-	     (priority nil)
+             (todo nil)
+             (priority nil)
              (scheduled nil)
              (deadline nil)
              (level 0)
              (tags (md-roam-get-tags))
              ;; Properties are required for `org-roam-ui'
              ;; TODO other properties in frontmatter?
-	     (properties (list (cons "TITLE" title) (cons "ID" id)))
+             (properties (list (cons "TITLE" title) (cons "ID" id)))
              (olp nil))
         (org-roam-db-query!
          (lambda (err)
@@ -339,7 +332,7 @@ Requied for wiki link capture."
         (when tags
           (org-roam-db-query
            [:insert :into tags
-		    :values $v1]
+                    :values $v1]
            (mapcar (lambda (tag)
                      (vector id (substring-no-properties tag)))
                    tags)))
@@ -375,20 +368,20 @@ files are in `org-roam-directory'."
            (properties (list :outline nil)))
       (while (re-search-forward md-roam-regex-link-inline nil t)
         (let* ((url (match-string-no-properties 6))
+               (parsed-url (url-generic-parse-url url))
                ;; If there url-type is nil then it can be a file link.
                ;; File links require tye type to be id for Org-roam
                (type (or (url-type parsed-url) "id"))
                (file-path (when (string-equal type "id")
                             ;; file-path, if exists, needs to be an absolute
                             ;; path as that's what Org-roam stores in the cache.
-                            (buffer-file-name (find-file-noselect
-                                               (url-filename
-                                                (url-generic-parse-url url))))))
+                            (buffer-file-name
+                             (find-file-noselect (url-filename parsed-url)))))
                ;; If file-path is non-nil, check Org-roam db if it is in
                ;; Org-roam cache. Set ID to path.  If file-path is nil, get URL
                ;; for refs.
                (path (if file-path (md-roam-db-id-from-file-path file-path)
-                       ;; If file-path is nil, then 
+                       ;; If file-path is nil, then
                        (string-match org-link-plain-re url)
                        (match-string-no-properties 2 url))))
           (when (and type source path)
@@ -462,17 +455,17 @@ TODO other formats?"
   "Return node ID from FILE-PATH.
 FILE-PATH must be an absolute path to the file in question."
   (when-let ((path (when (file-name-absolute-p file-path) file-path)))
-    (caar (org-roam-db-query [:select [id] :from nodes              
+    (caar (org-roam-db-query [:select [id] :from nodes
                               :where (= file $s1)]
                              path))))
 
 (defun md-roam-db-file-relative-path-from-id (id)
   "Return file relative path from ID."
   (file-relative-name
-   (caar (org-roam-db-query [:select [file] :from nodes              
+   (caar (org-roam-db-query [:select [file] :from nodes
                                      :where (= id $s1)]
                             id))))
-  
+
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for other commands: node-insert and follow-wiki-link
 
@@ -502,12 +495,12 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  (let ((fn (md-roam-get-insert-link-function))
-                        (id (when (eq md-roam-node-insert-type 'id)
-                              (org-roam-node-id node)))
-                        (title-or-alias (when (eq md-roam-node-insert-type 'title-or-alias)
-                                          (org-roam-node-title node)))
-                        (insert (funcall fn id title-or-alias description)))
+                  (insert (concat "[["
+                                  (cond
+                                   ((eq md-roam-node-insert-type 'id)
+                                    (concat (org-roam-node-id node) "]] " description))
+                                   ((eq md-roam-node-insert-type 'title-or-alias)
+                                    (concat (org-roam-node-title node) "]]")))))
                   ;; for advice
                   t)
               (org-roam-capture-
@@ -525,36 +518,6 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       (deactivate-mark)
       ;; for advice
       t)))
-
-(defun md-roam-get-insert-link-function ()
-  "."
-  ;; Toggle the function when `current-prefix-arg' is non-nil
-  (when (eq current-prefix-arg '(4))
-    (if (eq md-roam-get-insert-link-function 'md-roam-insert-wiki-link)
-        'md-roam-insert-markdown-link
-      'md-roam-insert-wiki-link))
-  md-roam-insert-link-function)
-
-(defun md-roam-insert-wiki-link (id title-or-alias description)
-  "Return wiki link string for NODE.
-Used by `md-roam-node-insert'."
-    (concat "[["
-            (cond
-             ((eq md-roam-node-insert-type 'id)
-              (concat (org-roam-node-id node) "]] " description))
-             ((eq md-roam-node-insert-type 'title-or-alias)
-              (concat (org-roam-node-title node) "]]")))))
-
-(defun md-roam-insert-markdown-link (id title-or-alias description)
-  "Return markdown link string for NODE.
-Used by `md-roam-node-insert'."
-  (concat "["
-                  (cond
-                   ((eq md-roam-node-insert-type 'id)
-                    (concat description "](" (org-roam-node-id node) "." md-roam-file-extension ")" ))
-                   ((eq md-roam-node-insert-type 'title-or-alias)
-                    (concat  (org-roam-node-title node) "]("
-                             (org-roam-node-id node) "." md-roam-file-extension ")")))))
 
 (defun md-roam-follow-wiki-link (name &optional other)
   "Follow wiki link NAME if there is the linked file exists.
