@@ -367,27 +367,30 @@ Requied for wiki link capture."
                (vector (point) source path type properties)))))))))
 
 (defun md-roam-db-insert-links ()
-  "Insert URL links in current buffer into Org-roam cache.
-This is for refs."
+  "Insert URL and file links in current buffer into Org-roam cache.
+URLs are for refs.  File links are for backlinks if the target
+files are in `org-roam-directory'."
   (org-with-point-at (md-roam-get-yaml-front-matter-endpoint)
     (let  ((source (md-roam-get-id))
            (properties (list :outline nil)))
       (while (re-search-forward md-roam-regex-link-inline nil t)
         (let* ((url (match-string-no-properties 6))
-               (parsed-url (url-generic-parse-url url))
-               (type (if (url-type parsed-url)
-                         (url-type parsed-url)
-                       ;; potentially file with id
-                       "id"))
-               (filename (when (string-equal type "id")
-                           (buffer-file-name (find-file-noselect
-                                              (url-filename parsed-url)))))
-               (path (if filename
-                         (caar (org-roam-db-query [:select [id] :from nodes              
-                                                   :where (= file $s1)]
-                                                  filename))
+               ;; If there url-type is nil then it can be a file link.
+               ;; File links require tye type to be id for Org-roam
+               (type (or (url-type parsed-url) "id"))
+               (file-path (when (string-equal type "id")
+                            ;; file-path, if exists, needs to be an absolute
+                            ;; path as that's what Org-roam stores in the cache.
+                            (buffer-file-name (find-file-noselect
+                                               (url-filename
+                                                (url-generic-parse-url url))))))
+               ;; If file-path is non-nil, check Org-roam db if it is in
+               ;; Org-roam cache. Set ID to path.  If file-path is nil, get URL
+               ;; for refs.
+               (path (if file-path (md-roam-db-id-from-file-path file-path)
+                       ;; If file-path is nil, then 
                        (string-match org-link-plain-re url)
-	               (match-string-no-properties 2 url))))
+                       (match-string-no-properties 2 url))))
           (when (and type source path)
             (org-roam-db-query
              [:insert :into links
@@ -455,6 +458,21 @@ TODO other formats?"
                             :values $v1]
                            rows)))))
 
+(defun md-roam-db-id-from-file-path (file-path)
+  "Return node ID from FILE-PATH.
+FILE-PATH must be an absolute path to the file in question."
+  (when-let ((path (when (file-name-absolute-p file-path) file-path)))
+    (caar (org-roam-db-query [:select [id] :from nodes              
+                              :where (= file $s1)]
+                             path))))
+
+(defun md-roam-db-file-relative-path-from-id (id)
+  "Return file relative path from ID."
+  (file-relative-name
+   (caar (org-roam-db-query [:select [file] :from nodes              
+                                     :where (= id $s1)]
+                            id))))
+  
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for other commands: node-insert and follow-wiki-link
 
@@ -484,7 +502,12 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  (insert (funcall md-roam-insert-link-function node))
+                  (let ((fn (md-roam-get-insert-link-function))
+                        (id (when (eq md-roam-node-insert-type 'id)
+                              (org-roam-node-id node)))
+                        (title-or-alias (when (eq md-roam-node-insert-type 'title-or-alias)
+                                          (org-roam-node-title node)))
+                        (insert (funcall fn id title-or-alias description)))
                   ;; for advice
                   t)
               (org-roam-capture-
@@ -503,7 +526,16 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       ;; for advice
       t)))
 
-(defun md-roam-insert-wiki-link (node)
+(defun md-roam-get-insert-link-function ()
+  "."
+  ;; Toggle the function when `current-prefix-arg' is non-nil
+  (when (eq current-prefix-arg '(4))
+    (if (eq md-roam-get-insert-link-function 'md-roam-insert-wiki-link)
+        'md-roam-insert-markdown-link
+      'md-roam-insert-wiki-link))
+  md-roam-insert-link-function)
+
+(defun md-roam-insert-wiki-link (id title-or-alias description)
   "Return wiki link string for NODE.
 Used by `md-roam-node-insert'."
     (concat "[["
@@ -513,7 +545,7 @@ Used by `md-roam-node-insert'."
              ((eq md-roam-node-insert-type 'title-or-alias)
               (concat (org-roam-node-title node) "]]")))))
 
-(defun md-roam-insert-markdown-link (node)
+(defun md-roam-insert-markdown-link (id title-or-alias description)
   "Return markdown link string for NODE.
 Used by `md-roam-node-insert'."
   (concat "["
@@ -546,12 +578,16 @@ another window.  This is not relevant if file does not exist."
       ;; procss after the new buffer is saved (aborted should not be saved)
       (org-roam-capture-
        :node (org-roam-node-create :title name)
-       :props '(:finalize md-find-file)))
+       :props '(:finalize md-roam-find-file)))
     t))
 
 ;;;; Capture needs to update the cache when wikilink does not have a target file.
-(defun md-find-file ()
-  "."
+(defun md-roam-find-file ()
+  "Used in`md-roam-follow-wiki-link'.
+When the wiki link target file does not yet exist, Md-roam
+prompts for a new file with Org-roam captuure process.  When
+finalizing the capture process, it updates the Org-roam cache for
+the source file to cache the link from source to target."
   (let ((new-file (org-roam-capture--get :new-file)))
     (unless org-note-abort
       (when-let ((original-buf (org-capture-get :original-buffer)))
