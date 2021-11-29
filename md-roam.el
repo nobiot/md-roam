@@ -209,6 +209,8 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       ;; `org-roam-mode' buffer
       (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
       (advice-add #'org-roam-preview-get-contents :before-until #'md-roam-preview-get-contents)
+      ;; For `before-save-hook'
+      (advice-add #'org-roam--replace-roam-links-on-save-h :before-until #'md-roam--replace-roam-links-on-save-h)
       ;; Completion-at-point
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
@@ -222,6 +224,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
+    (advice-remove #'org-roam--replace-roam-links-on-save-h #'md-roam--replace-roam-links-on-save-h)
     (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
@@ -544,7 +547,7 @@ another window.  This is not relevant if file does not exist."
        :props '(:finalize md-roam-find-file)))
     t))
 
-;;;; Capture needs to update the cache when wikilink does not have a target file.
+;; Capture needs to update the cache when wikilink does not have a target file.
 (defun md-roam-find-file ()
   "Used in`md-roam-follow-wiki-link'.
 When the wiki link target file does not yet exist, Md-roam
@@ -692,6 +695,19 @@ It puts the title, not IDs."
               :exit-function
               (lambda (&rest _)
                 (forward-char 2)))))))
+
+
+;;------------------------------------------------------------------------------
+;;;;; Replace roam links
+;;    Relavant for the [[roam:]] and [[wiki link]] form
+
+(defun md-roam--replace-roam-links-on-save-h ()
+  "Avoid running `org-roam-link-replace-all' on `before-save-hook'.
+It's set by `org-roam-find-file-hook' and can cause an issue for
+Md-roam files."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    ;; do nothing for now and return t for advice
+    t))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Utility functions
