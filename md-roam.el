@@ -205,6 +205,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (advice-add #'org-roam-node-insert :before-until #'md-roam-node-insert)
       (advice-add #'markdown-follow-wiki-link :before-until #'md-roam-follow-wiki-link)
       ;; This avoids capture process to add ID in the Org property drawer
+      (add-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
       (advice-add #'org-id-get :before-until #'md-roam-id-get)
       ;; `org-roam-mode' buffer
       (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
@@ -221,6 +222,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
     (advice-remove #'org-roam-node-insert #'md-roam-node-insert)
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
+    (remove-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
     (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
@@ -575,6 +577,25 @@ process \(for _create argument\).
 TODO CREATE process to insert a new ID within frontmatter."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
     (md-roam-get-id)))
+
+(defun md-roam-capture-preface ()
+  "."
+  (advice-add #'org-entry-put :before-until #'md-roam-entry-put)
+  (add-hook 'org-capture-after-finalize-hook #'md-roam-capture-after-finalize)
+  ;; Need to retrun nil for `org-roam-capture--prepare-buffer' to run the normal
+  ;; process.
+  nil)
+
+(defun md-roam-entry-put (_pom _property _value)
+  "Return t and do nothing when current buffer visiting markdown file.
+Only for `md-roam'."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    t))
+
+(defun md-roam-capture-after-finalize ()
+  "Remove the advice from `org-entry-put'."
+  (advice-remove #'org-entry-put #'md-roam-entry-put)
+  (remove-hook 'org-capture-after-finalize-hook #'md-roam-capture-after-finalize))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-buffer'
