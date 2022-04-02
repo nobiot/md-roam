@@ -52,9 +52,10 @@ Org-roam must be configured before Md-roam. As a minimal configuration for Md-ro
 - `(setq md-roam-file-extension "md") ; Default is "md". Specify an extension such as "markdown"`
 
 ```emacs-lisp
-(setq org-roam-v2-ack t)
 (require 'org-roam)
-(setq org-roam-directory (file-truename "path/to/org-roam-directory"))
+(setq org-roam-directory (file-truename "path/to/org-roam-directory")) 
+;; file-truename is optional; it seems required when you use symbolic
+;; links, which Org-roam does not resolve
 (setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension
 (add-to-list 'load-path "path/to/md-roam") ; installation as above
 (require 'md-roam)
