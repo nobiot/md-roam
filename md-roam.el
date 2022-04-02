@@ -212,6 +212,8 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (advice-add #'org-roam-preview-get-contents :before-until #'md-roam-preview-get-contents)
       ;; For `before-save-hook'
       (advice-add #'org-roam--replace-roam-links-on-save-h :before-until #'md-roam--replace-roam-links-on-save-h)
+      ;; For `org-roam-buffer-p'
+      (advice-add #'org-roam-buffer-p :before-until #'md-roam-buffer-p)
       ;; Completion-at-point
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
@@ -227,6 +229,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
     (advice-remove #'org-roam--replace-roam-links-on-save-h #'md-roam--replace-roam-links-on-save-h)
+    (advice-remove #'org-roam-buffer-p #'md-roam-buffer-p)
     (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
@@ -731,6 +734,16 @@ Md-roam files."
     t))
 
 ;;------------------------------------------------------------------------------
+;;;;; `md-roam-buffer-p' for `org-roam-buffer-list'
+
+(defun md-roam-buffer-p (&optional buffer)
+  "Return t if BUFFER is for an Md-roam file.
+If BUFFER is not specified, use the current buffer."
+  (let ((buffer (or buffer (current-buffer))))
+    (with-current-buffer buffer
+      (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer))))))
+
+;;------------------------------------------------------------------------------
 ;;;;; Utility functions
 
 (defun md-roam--markdown-file-p (path)
@@ -778,6 +791,15 @@ the first/last item should not matter.
 These should be equally valid."
 
   (let ((regexp "\\(\\[\s*\\)\\(.*\\)\\(\s*\\]\\)")
+        (separator ",\s*"))
+    (when (string-match regexp seq)
+      (let ((items (split-string-and-unquote
+                    (match-string-no-properties 2 seq) separator)))
+        (mapcar #'md-roam--remove-single-quotes items)))))
+
+(defun md-roam--yaml-split-seq (seq)
+  "."
+  (let ((regexp "\\(\s*\\)\\(.*\\)\\(\s*\\)")
         (separator ",\s*"))
     (when (string-match regexp seq)
       (let ((items (split-string-and-unquote
