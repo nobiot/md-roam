@@ -214,6 +214,8 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (advice-add #'org-roam--replace-roam-links-on-save-h :before-until #'md-roam--replace-roam-links-on-save-h)
       ;; For `org-roam-buffer-p'
       (advice-add #'org-roam-buffer-p :before-until #'md-roam-buffer-p)
+      ;; Avoid invalid-regexp in `org-roam-node-open'
+      (advice-add #'org-show-context :before-until #'md-roam-do-not-show-context)
       ;; Completion-at-point
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
@@ -230,6 +232,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
     (advice-remove #'org-roam--replace-roam-links-on-save-h #'md-roam--replace-roam-links-on-save-h)
     (advice-remove #'org-roam-buffer-p #'md-roam-buffer-p)
+    (advice-remove #'org-show-context #'md-roam-do-not-show-context)
     (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
@@ -565,6 +568,12 @@ the source file to cache the link from source to target."
         (with-current-buffer original-buf
           (md-roam-db-do-update))
         (find-file new-file)))))
+
+(defun md-roam-do-not-show-context ()
+  "Used in `org-roam-node-open' to avoid error.
+invalid-regexp \"Invalid regular expression\"."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    t))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-capture'
