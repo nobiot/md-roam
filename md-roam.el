@@ -72,7 +72,7 @@ This is for `md-roam-node-insert'.  If 'title-and-alias, the
 resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 \"[[ID]] title\"."
   :type '(choice (const :tag "Title or alias" title-or-alias)
-                 (const :tag "Node ID" ID))
+                 (const :tag "Node ID" id))
   :group 'md-roam)
 
 ;;;; Variables
@@ -208,14 +208,20 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (add-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
       (advice-add #'org-id-get :before-until #'md-roam-id-get)
       ;; `org-roam-mode' buffer
-      (advice-add #'org-roam-node-at-point :before-until #'md-roam-node-at-point)
-      (advice-add #'org-roam-preview-get-contents :before-until #'md-roam-preview-get-contents)
+      (advice-add #'org-roam-node-at-point
+                  :before-until #'md-roam-node-at-point)
+      (advice-add #'org-roam-preview-get-contents
+                  :before-until #'md-roam-preview-get-contents)
       ;; For `before-save-hook'
-      (advice-add #'org-roam--replace-roam-links-on-save-h :before-until #'md-roam--replace-roam-links-on-save-h)
+      (advice-add #'org-roam--replace-roam-links-on-save-h
+                  :before-until #'md-roam--replace-roam-links-on-save-h)
       ;; For `org-roam-buffer-p'
       (advice-add #'org-roam-buffer-p :before-until #'md-roam-buffer-p)
       ;; Avoid invalid-regexp in `org-roam-node-open'
       (advice-add #'org-show-context :before-until #'md-roam-do-not-show-context)
+      ;; Insert wiki-link when inserting a new note with using `org-roam-insert'
+      (advice-add #'org-roam-capture--finalize-insert-link
+                  :before-until #'md-roam-capture--finalize-insert-link)
       ;; Completion-at-point
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
@@ -229,11 +235,16 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (remove-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
     (advice-remove #'org-id-get #'md-roam-id-get)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
-    (advice-remove #'org-roam-preview-get-contents #'md-roam-preview-get-contents)
-    (advice-remove #'org-roam--replace-roam-links-on-save-h #'md-roam--replace-roam-links-on-save-h)
+    (advice-remove #'org-roam-preview-get-contents
+                   #'md-roam-preview-get-contents)
+    (advice-remove #'org-roam--replace-roam-links-on-save-h
+                   #'md-roam--replace-roam-links-on-save-h)
     (advice-remove #'org-roam-buffer-p #'md-roam-buffer-p)
     (advice-remove #'org-show-context #'md-roam-do-not-show-context)
-    (remove-hook 'org-roam-completion-functions #'md-roam-complete-wiki-link-at-point))))
+    (advice-remove #'org-roam-capture--finalize-insert-link
+                   #'md-roam-capture--finalize-insert-link)
+    (remove-hook 'org-roam-completion-functions
+                 #'md-roam-complete-wiki-link-at-point))))
 
 ;;;; Functions
 
@@ -506,12 +517,9 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
                     (delete-region beg end)
                     (set-marker beg nil)
                     (set-marker end nil))
-                  (insert (concat "[["
-                                  (cond
-                                   ((eq md-roam-node-insert-type 'id)
-                                    (concat (org-roam-node-id node) "]] " description))
-                                   ((eq md-roam-node-insert-type 'title-or-alias)
-                                    (concat (org-roam-node-title node) "]]")))))
+                  (insert (md-roam--wiki-link-create (org-roam-node-id node)
+                                                     description
+                                                     (org-roam-node-title node)))
                   ;; for advice
                   t)
               (org-roam-capture-
@@ -529,6 +537,31 @@ The INFO, if provided, is passed to the underlying `org-roam-capture-'."
       (deactivate-mark)
       ;; for advice
       t)))
+
+(defun md-roam-capture--finalize-insert-link ()
+  "Insert a wiki-link to ID when `org-roam-insert' for a new note.
+This is md-roam equivalent of `org-roam-capture--finalize-insert-link'."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (when-let* ((mkr (org-roam-capture--get :call-location))
+                (buf (marker-buffer mkr)))
+      (with-current-buffer buf
+        (when-let ((region (org-roam-capture--get :region)))
+          (org-roam-unshield-region (car region) (cdr region))
+          (delete-region (car region) (cdr region))
+          (set-marker (car region) nil)
+          (set-marker (cdr region) nil))
+        (let* ((id (org-roam-capture--get :id))
+               (description (org-roam-capture--get :link-description))
+               (link (md-roam--wiki-link-create id description description)))
+          (if (eq (point) (marker-position mkr))
+              (insert link)
+            (org-with-point-at mkr
+              (insert link)))
+          (run-hook-with-args 'org-roam-post-node-insert-hook
+                              id
+                              description))))
+    ;; for advice
+    t))
 
 (defun md-roam-follow-wiki-link (name &optional other)
   "Follow wiki link NAME if there is the linked file exists.
@@ -814,6 +847,22 @@ These should be equally valid."
       (let ((items (split-string-and-unquote
                     (match-string-no-properties 2 seq) separator)))
         (mapcar #'md-roam--remove-single-quotes items)))))
+
+(defun md-roam--wiki-link-create (id description title)
+  "Return wiki-link string.
+This function uses `md-roam-node-insert-type' to return the
+approapriate wiki-link.
+
+ID is the node ID.  DESCRIPTION is description used in
+`org-roam-insert'.  TITLE is the title, alias, or description of
+the node being inserted."
+  
+    (concat "[["
+            (cond
+             ((eq md-roam-node-insert-type 'id)
+              (concat id "]] " description))
+             ((eq md-roam-node-insert-type 'title-or-alias)
+              (concat title "]]")))))
 
 (provide 'md-roam)
 ;;; md-roam.el ends here
