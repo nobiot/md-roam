@@ -226,7 +226,9 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       ;; Append to the back of the functions list so that md-roam's one get called
       ;; before org-roam ones (org-roam dolist, resulting in reversing the order)
       (add-to-list 'org-roam-completion-functions
-                   #'md-roam-complete-wiki-link-at-point 'append)))
+                   #'md-roam-complete-wiki-link-at-point 'append)
+      (add-to-list 'org-roam-completion-functions
+                   #'md-roam-complete-everywhere 'append)))
    (t
     ;; Deactivate
     (advice-remove #'org-roam-db-update-file #'md-roam-db-update-file)
@@ -244,7 +246,9 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'org-roam-capture--finalize-insert-link
                    #'md-roam-capture--finalize-insert-link)
     (remove-hook 'org-roam-completion-functions
-                 #'md-roam-complete-wiki-link-at-point))))
+                 #'md-roam-complete-wiki-link-at-point)
+    (remove-hook 'org-roam-completion-functions
+                 #'md-roam-complete-everywhere))))
 
 ;;;; Functions
 
@@ -762,6 +766,29 @@ It puts the title, not IDs."
               (lambda (&rest _)
                 (forward-char 2)))))))
 
+(defun md-roam-complete-everywhere ()
+  "Complete symbol at point as a link completion to an Org-roam node.
+This is a `completion-at-point' function, and is active when
+`org-roam-completion-everywhere' is non-nil.
+
+Unlike `org-roam-complete-link-at-point' this will complete even
+outside of the bracket syntax for wiki links (i.e. \"[[|]]\"),
+hence \"everywhere\"."
+  (when (and (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+             org-roam-completion-everywhere
+             (thing-at-point 'word)
+             (not (save-match-data (org-in-regexp org-link-any-re))))
+    (let ((bounds (bounds-of-thing-at-point 'word)))
+      (list (car bounds) (cdr bounds)
+            (org-roam--get-titles)
+            :exit-function
+            (lambda (str _status)
+              (delete-char (- (length str)))
+              (insert "[[" str "]]"))
+            ;; Proceed with the next completion function if the returned titles
+            ;; do not match. This allows the default Org capfs or custom capfs
+            ;; of lower priority to run.
+            :exclusive 'no))))
 
 ;;------------------------------------------------------------------------------
 ;;;;; Replace roam links
