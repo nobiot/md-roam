@@ -398,14 +398,20 @@ files are in `org-roam-directory'."
                ;; If there url-type is nil then it can be a file link.
                ;; File links require tye type to be id for Org-roam
                (type (or (url-type parsed-url) "id"))
-               (file-path (when (string-equal type "id")
+               (file-path (when (and (string-equal type "id")
+                                     ;; Avoid inserting the link to DB if it's not `md-roam-file-extension'
+                                     (string-equal (url-file-extension (url-filename parsed-url))
+                                                   (concat "." md-roam-file-extension)))
                             ;; file-path, if exists, needs to be an absolute
                             ;; path as that's what Org-roam stores in the cache.
-                            (buffer-file-name
-                             (find-file-noselect (url-filename parsed-url)))))
+                            (buffer-file-name (find-file-noselect (url-filename parsed-url) 'NOWARN))))
                ;; If file-path is non-nil, check Org-roam db if it is in
-               ;; Org-roam cache. Set ID to path.  If file-path is nil, get URL
-               ;; for refs.
+               ;; Org-roam cache. Set ID to path.  If file-path is nil,
+               ;; get URL for refs.
+               ;; TODO Need refactoring. path is set to nil when
+               ;; file-path is nil (when a file is not
+               ;; md-roam-file-extension).  The behaviour is correct,
+               ;; but it's not explicit.
                (path (if file-path (md-roam-db-id-from-file-path file-path)
                        ;; If file-path is nil, then
                        (string-match org-link-plain-re url)
