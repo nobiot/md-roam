@@ -393,34 +393,35 @@ files are in `org-roam-directory'."
     (let  ((source (md-roam-get-id))
            (properties (list :outline nil)))
       (while (re-search-forward md-roam-regex-link-inline nil t)
-        (let* ((url (match-string-no-properties 6))
-               (parsed-url (url-generic-parse-url url))
-               ;; If there url-type is nil then it can be a file link.
-               ;; File links require tye type to be id for Org-roam
-               (type (or (url-type parsed-url) "id"))
-               (file-path (when (and (string-equal type "id")
-                                     ;; Avoid inserting the link to DB if it's not `md-roam-file-extension'
-                                     (string-equal (url-file-extension (url-filename parsed-url))
-                                                   (concat "." md-roam-file-extension)))
-                            ;; file-path, if exists, needs to be an absolute
-                            ;; path as that's what Org-roam stores in the cache.
-                            (buffer-file-name (find-file-noselect (url-filename parsed-url) 'NOWARN))))
-               ;; If file-path is non-nil, check Org-roam db if it is in
-               ;; Org-roam cache. Set ID to path.  If file-path is nil,
-               ;; get URL for refs.
-               ;; TODO Need refactoring. path is set to nil when
-               ;; file-path is nil (when a file is not
-               ;; md-roam-file-extension).  The behaviour is correct,
-               ;; but it's not explicit.
-               (path (if file-path (md-roam-db-id-from-file-path file-path)
-                       ;; If file-path is nil, then
-                       (string-match org-link-plain-re url)
-                       (match-string-no-properties 2 url))))
-          (when (and type source path)
-            (org-roam-db-query
-             [:insert :into links
-                      :values $v1]
-             (vector (point) source path type properties))))))))
+        (unless (string-empty-p (match-string-no-properties 6)) ;; fix #73
+          (let* ((url (match-string-no-properties 6))
+                 (parsed-url (url-generic-parse-url url))
+                 ;; If there url-type is nil then it can be a file link.
+                 ;; File links require tye type to be id for Org-roam
+                 (type (or (url-type parsed-url) "id"))
+                 (file-path (when (and (string-equal type "id")
+                                       ;; Avoid inserting the link to DB if it's not `md-roam-file-extension'
+                                       (string-equal (url-file-extension (url-filename parsed-url))
+                                                     (concat "." md-roam-file-extension)))
+                              ;; file-path, if exists, needs to be an absolute
+                              ;; path as that's what Org-roam stores in the cache.
+                              (buffer-file-name (find-file-noselect (url-filename parsed-url) 'NOWARN))))
+                 ;; If file-path is non-nil, check Org-roam db if it is in
+                 ;; Org-roam cache. Set ID to path.  If file-path is nil,
+                 ;; get URL for refs.
+                 ;; TODO Need refactoring. path is set to nil when
+                 ;; file-path is nil (when a file is not
+                 ;; md-roam-file-extension).  The behaviour is correct,
+                 ;; but it's not explicit.
+                 (path (if file-path (md-roam-db-id-from-file-path file-path)
+                         ;; If file-path is nil, then
+                         (string-match org-link-plain-re url)
+                         (match-string-no-properties 2 url))))
+            (when (and type source path)
+              (org-roam-db-query
+               [:insert :into links
+                        :values $v1]
+               (vector (point) source path type properties)))))))))
 
 (defun md-roam-db-insert-citations ()
   "Insert data for citations in the current buffer into Org-roam cache.
@@ -889,7 +890,7 @@ approapriate wiki-link.
 ID is the node ID.  DESCRIPTION is description used in
 `org-roam-insert'.  TITLE is the title, alias, or description of
 the node being inserted."
-  
+
     (concat "[["
             (cond
              ((eq md-roam-node-insert-type 'id)
