@@ -613,7 +613,7 @@ the source file to cache the link from source to target."
           (md-roam-db-do-update))
         (find-file new-file)))))
 
-(defun md-roam-do-not-show-context ()
+(defun md-roam-do-not-show-context (&optional _key)
   "Used in `org-roam-node-open' to avoid error.
 invalid-regexp \"Invalid regular expression\"."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
