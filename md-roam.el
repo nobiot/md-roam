@@ -63,8 +63,10 @@
 Unlike 'org-roam-file-extension', this is a single value, not a list.
 It is intended to be used for you to define a different markdown extension,
 such as .md and .markdown."
-  :type 'string
-  :group 'md-roam)
+  :group 'md-roam
+  :type '(choice
+          (string)
+          (repeat :tag "List of extensions (string)" string)))
 
 (defcustom md-roam-node-insert-type 'title-or-alias
   "Define whether ID or title/aliase should be inserted.
@@ -401,22 +403,22 @@ files are in `org-roam-directory'."
                  (type (or (url-type parsed-url) "id"))
                  (file-path (when (and (string-equal type "id")
                                        ;; Avoid inserting the link to DB if it's not `md-roam-file-extension'
-                                       (string-equal (url-file-extension (url-filename parsed-url))
-                                                     (concat "." md-roam-file-extension)))
+                                       (md-roam--markdown-file-p (url-filename parsed-url)))
                               ;; file-path, if exists, needs to be an absolute
                               ;; path as that's what Org-roam stores in the cache.
                               (buffer-file-name (find-file-noselect (url-filename parsed-url) 'NOWARN))))
-                 ;; If file-path is non-nil, check Org-roam db if it is in
-                 ;; Org-roam cache. Set ID to path.  If file-path is nil,
-                 ;; get URL for refs.
+                 ;; If file-path is non-nil, check Org-roam db if it is
+                 ;; in Org-roam cache. Set ID to path.  If file-path is
+                 ;; nil, get URL for refs.
+
                  ;; TODO Need refactoring. path is set to nil when
                  ;; file-path is nil (when a file is not
-                 ;; md-roam-file-extension).  The behaviour is correct,
+                 ;; a md roam file).  The behaviour is correct,
                  ;; but it's not explicit.
                  (path (if file-path (md-roam-db-id-from-file-path file-path)
                          ;; If file-path is nil, then
-                         (string-match org-link-plain-re url)
-                         (match-string-no-properties 2 url))))
+                         (when (string-match org-link-plain-re url)
+                           (match-string-no-properties 2 url)))))
             (when (and type source path)
               (org-roam-db-query
                [:insert :into links
@@ -822,13 +824,17 @@ If BUFFER is not specified, use the current buffer."
 ;;------------------------------------------------------------------------------
 ;;;;; Utility functions
 
-(defun md-roam--markdown-file-p (path)
-  "Return t if PATH is pointing to a markdown file.
-`md-roam-file-extension' defines the extension.
+;;;TODO This file can be unit tested
+(defun md-roam--markdown-file-p (file)
+  "Return non-nil if FILE is pointing to a markdown file.
+`md-roam-file-extension' can be either a string or a list of strings.
 Return nil if not."
-  (when path
-    (let ((ext (org-roam--file-name-extension path)))
-      (string-equal ext md-roam-file-extension))))
+  (when file
+    (let ((ext (org-roam--file-name-extension file)))
+      (if (stringp md-roam-file-extension)
+          (string-equal ext md-roam-file-extension)
+        ;; If not string, it must be a list of string
+        (member ext md-roam-file-extension)))))
 
 (defun md-roam--remove-single-quotes (str)
   "Check if STR is surrounded by single-quotes, and remove them.
