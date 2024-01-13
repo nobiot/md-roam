@@ -318,11 +318,26 @@ Requied for wiki link capture."
   (emacsql-with-transaction (org-roam-db)
     (save-excursion
       (org-roam-db-clear-file)
-      (org-roam-db-insert-file)
+      (md-roam-db-insert-file)
       (md-roam-db-insert-file-node)
       (md-roam-db-insert-wiki-links)
       (md-roam-db-insert-citations)
       (md-roam-db-insert-links))))
+
+(defun md-roam-db-insert-file (&optional hash)
+    "Update the files table for the current buffer.
+If UPDATE-P is non-nil, first remove the file in the database.
+If HASH is non-nil, use that as the file's hash without recalculating it."
+    (let* ((file (buffer-file-name))
+           (file-title (or (md-roam-get-title) (file-name-base file)))
+           (attr (file-attributes file))
+           (atime (file-attribute-access-time attr))
+           (mtime (file-attribute-modification-time attr))
+           (hash (or hash (org-roam-db--file-hash file))))
+      (org-roam-db-query
+       [:insert :into files
+                :values $v1]
+       (list (vector file file-title hash atime mtime)))))
 
 (defun md-roam-db-insert-file-node ()
   "Insert the file-level node into the Org-roam cache."
