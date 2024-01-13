@@ -722,8 +722,11 @@ Return nil if the front matter does not exist, or incorrectly delineated by
                  (let ((tag (match-string-no-properties 2)))
                    (when tag
                      (setq tags
-                           ;; Remove the first char @ or #
-                           (append tags (list (substring tag 1)))))))
+                           (append tags
+                                   ;; Remove the first char @ or #
+                                   (list (if (eql 0 (string-match "[@#]" tag))
+                                             (substring tag 1)
+                                           tag)))))))
                tags))))))
 
 (defun md-roam-get-title ()
