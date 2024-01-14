@@ -1,11 +1,11 @@
 ;;; md-roam.el --- description -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2020-2022 Noboru Ota
+;; Copyright (C) 2020-2024 Noboru Ota
 ;;
 ;; Author: Noboru Ota <https://github.com/nobiot>
 ;; URL: https://github.com/nobiot/md-roam
 ;; Version: 2.0.1
-;; Last Modified: 2021-03-19
+;; Last modified: 2024-01-14T122538
 ;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
