@@ -5,7 +5,7 @@
 ;; Author: Noboru Ota <https://github.com/nobiot>
 ;; URL: https://github.com/nobiot/md-roam
 ;; Version: 2.0.1
-;; Last modified: 2024-01-14T122538
+;; Last modified: 2024-01-17T234302
 ;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
@@ -209,6 +209,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       ;; This avoids capture process to add ID in the Org property drawer
       (add-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
       (advice-add #'org-id-get :before-until #'md-roam-id-get)
+      (advice-add #'org-roam-id-at-point :before-until #'md-roam-id-at-point)
       ;; `org-roam-mode' buffer
       (advice-add #'org-roam-node-at-point
                   :before-until #'md-roam-node-at-point)
@@ -238,6 +239,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
     (advice-remove #'markdown-follow-wiki-link #'md-roam-follow-wiki-link)
     (remove-hook 'org-roam-capture-preface-hook #'md-roam-capture-preface)
     (advice-remove #'org-id-get #'md-roam-id-get)
+    (advice-remove #'org-roam-id-at-point #'md-roam-id-at-point)
     (advice-remove #'org-roam-node-at-point #'md-roam-node-at-point)
     (advice-remove #'org-roam-preview-get-contents
                    #'md-roam-preview-get-contents)
@@ -650,6 +652,13 @@ process \(for _create argument\).
 TODO CREATE process to insert a new ID within frontmatter."
   (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
     (md-roam-get-id)))
+
+(defun md-roam-id-at-point ()
+  "Return the ID at point, if any.
+This function is a wrapper for `md-roam-id-get'. For md-roam, the
+ID is always at the file level; headline node exits."
+  (when (md-roam--markdown-file-p (buffer-file-name (buffer-base-buffer)))
+    (md-roam-id-get)))
 
 (defun md-roam-capture-preface ()
   "."
