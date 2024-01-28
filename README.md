@@ -53,7 +53,7 @@ Org-roam must be configured before Md-roam. As a minimal configuration for Md-ro
 
 ```emacs-lisp
 (require 'org-roam)
-(setq org-roam-directory (file-truename "path/to/org-roam-directory")) 
+(setq org-roam-directory (file-truename "path/to/org-roam-directory"))
 ;; file-truename is optional; it seems required when you use symbolic
 ;; links, which Org-roam does not resolve
 (setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension
@@ -86,7 +86,7 @@ For interactive commands, you can use Org-roam's standard ones. There is no spec
 
 ## "In-line search" with Company and Corfu
 
-With Md-roam, you can use completion-at-point for wiki links within Org-roam.
+With Md-roam, you can use completion-at-point for wiki links within Org-roam. Md-roam currently does not implement support for `org-roam-complete-everywhere`. I will not be able to provide a fix any time soon -- please consider this option unsupported (see issue [#82](https://github.com/nobiot/md-roam/issues/82))
 
 ![Corfu animation](./images/corfu.gif)
 
