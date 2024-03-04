@@ -394,6 +394,7 @@ If HASH is non-nil, use that as the file's hash without recalculating it."
         (while (re-search-forward "\\[\\[\\([^]]+\\)\\]\\]" nil t)
           (let* ((name (match-string-no-properties 1))
                  (node (or (org-roam-node-from-title-or-alias name)
+                           (org-roam-node-from-title-or-alias (replace-regexp-in-string "[\n ]+" " " name))
                            (org-roam-node-create :id name)))
                  (path (org-roam-node-id node)))
             ;; insert to cache the link only there is a file for the
