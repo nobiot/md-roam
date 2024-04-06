@@ -642,7 +642,7 @@ invalid-regexp \"Invalid regular expression\"."
 ;;------------------------------------------------------------------------------
 ;;;;; Functions for `org-roam-capture'
 
-(defun md-roam-id-get (&optional _pom _create _prefix)
+(defun md-roam-id-get (&rest _args)
   "This is meant to replace `org-id-get' for markdown buffers.
 `org-roam-capture' process tries to create and add ID in the
 Org's property drawer for a new file is being created.  For
