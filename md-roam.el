@@ -4,8 +4,8 @@
 ;;
 ;; Author: Noboru Ota <https://github.com/nobiot>
 ;; URL: https://github.com/nobiot/md-roam
-;; Version: 2.0.1
-;; Last modified: 2024-01-17T234302
+;; Version: 20250228.1947
+;; Last modified: 2025-02-28T194727
 ;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
@@ -222,6 +222,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
       (advice-add #'org-roam-buffer-p :before-until #'md-roam-buffer-p)
       ;; Avoid invalid-regexp in `org-roam-node-open'
       (advice-add #'org-show-context :before-until #'md-roam-do-not-show-context)
+      (advice-add #'org-fold-show-context :before-until #'md-roam-do-not-show-context)
       ;; Insert wiki-link when inserting a new note with using `org-roam-insert'
       (advice-add #'org-roam-capture--finalize-insert-link
                   :before-until #'md-roam-capture--finalize-insert-link)
@@ -247,6 +248,7 @@ It needs to be turned on before `org-roam-db-autosync-mode'."
                    #'md-roam--replace-roam-links-on-save-h)
     (advice-remove #'org-roam-buffer-p #'md-roam-buffer-p)
     (advice-remove #'org-show-context #'md-roam-do-not-show-context)
+    (advice-remove #'org-fold-show-context #'md-roam-do-not-show-context)
     (advice-remove #'org-roam-capture--finalize-insert-link
                    #'md-roam-capture--finalize-insert-link)
     (remove-hook 'org-roam-completion-functions
