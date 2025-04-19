@@ -4,8 +4,8 @@
 ;;
 ;; Author: Noboru Ota <https://github.com/nobiot>
 ;; URL: https://github.com/nobiot/md-roam
-;; Version: 20250228.1947
-;; Last modified: 2025-02-28T194727
+;; Version: 20250419.1521
+;; Last modified: 2025-04-19T152140
 ;; Package-Requires: ((emacs "27.1") (org-roam "2.1.0") (markdown-mode "2.5"))
 ;; Keywords: markdown, zettelkasten, note-taking, writing, org, org-roam
 
@@ -79,7 +79,7 @@ resultant wiki link will be \"[[title]]\.  If 'ID, it will be
 
 ;;;; Variables
 
-(defvar md-roam-db-compatible-version 18
+(defvar md-roam-db-compatible-version 20
   "`Compatible 'org-roam-db-version'.
 This is as described in \(info \"(org-roam\)Developer's Guide to Org-roam\"\).")
 
